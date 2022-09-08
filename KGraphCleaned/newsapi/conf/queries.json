@@ -1,0 +1,22 @@
+{
+  "lang": "es",
+  "ods": {
+    "endOfPoverty" : "(sostenibilidad OR sostenible) AND pobreza",
+    "zeroHunger" : "(sostenibilidad OR sostenible) AND hambre",
+    "healthAndWellness" : "(sostenibilidad OR sostenible) AND (salud OR bienestar)",
+    "qualityEducation" : "(sostenibilidad OR sostenible) AND (educación OR calidad)",
+    "genderEquality" : "(sostenibilidad OR sostenible) AND (igualdad OR género)",
+    "cleanWaterAndSanitation" : "(sostenibilidad OR sostenible) AND (agua OR saneamiento)",
+    "affordableAndCleanEnergy" : "(sostenibilidad OR sostenible) AND (energía OR contaminación OR 'huella de carbono' OR CO2)",
+    "decentWorkAndEconomicGrowth" : "(sostenibilidad OR sostenible) AND (decencia OR trabajo OR economía)",
+    "industryInnovationInfrastructure" : "(sostenibilidad OR sostenible) AND (industria OR innovación OR infraestructura OR 'corporación ética')",
+    "reducingInequalities" : "(sostenibilidad OR sostenible) AND (desigualdad OR reducción)",
+    "sustainableCities" : "(sostenibilidad OR sostenible) AND (ciudad OR comunidad)",
+    "responsibleConsumption" : "(sostenibilidad OR sostenible) AND (consumo responsable OR producción)",
+    "climateAction" : "(sostenibilidad OR sostenible) AND (clima OR 'cambio climático')",
+    "underwaterLife" : "(sostenibilidad OR sostenible) AND (vida OR ecosistema OR submarina OR océano OR mar)",
+    "earthlyLife" : "(sostenibilidad OR sostenible) AND (vida OR ecosistema OR terrestre)",
+    "peaceAndSolidInstitutions" : "(sostenibilidad OR sostenible) AND (paz OR justicia OR instituciones)",
+    "partnershipsToAchieveGoals" : "(sostenibilidad OR sostenible) AND (alianza OR objetivo)"
+  }
+}
