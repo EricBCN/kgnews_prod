@@ -32,7 +32,7 @@ class MongoConnector():
         self.USERNAME = 'root'
 
         # AWS
-        self.IP = '192.168.75.132'
+        self.IP = '172.31.12.215'
         self.PORT = 27017
         self.PASSWORD = '$$52$verb$REALIZE$market$25$$'
         self.DATABASE = 'KGNews'

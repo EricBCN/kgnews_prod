@@ -21,7 +21,7 @@ __all__ = [
 
 # Local
 CONSTANTS = {
-    'HOST': '192.168.75.132',
+    'HOST': '172.31.12.215',
     'PORT': 27017,
     'USERNAME': 'root',
     'PASSWORD': '$$52$verb$REALIZE$market$25$$',
