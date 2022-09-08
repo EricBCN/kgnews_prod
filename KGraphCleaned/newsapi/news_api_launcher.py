@@ -16,7 +16,7 @@ DAILY_TIME = "02:00"
 
 
 extractor_list = list()
-extractor_list.append(NewsAPI(language='es'))
+# extractor_list.append(NewsAPI(language='es'))
 extractor_list.append(NewsAPI(language='en'))
 
 
