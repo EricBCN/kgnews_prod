@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="22px" height="16px" viewBox="0 0 22 16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 55.2 (78181) - https://sketchapp.com -->
+    <title>Contact/Email</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <path d="M1,5.00087166 C1,4.4481055 1.43945834,4 2.00246167,4 L21.9975383,4 C22.5511826,4 23,4.44463086 23,5.00087166 L23,18.9991283 C23,19.5518945 22.5605417,20 21.9975383,20 L2.00246167,20 C1.44881738,20 1,19.5553691 1,18.9991283 L1,5.00087166 Z M11.9999817,14.6666933 L21.1666483,9.33336 L21.1666483,6.66669333 L11.9999817,12.0000267 L2.833315,6.66669333 L2.833315,9.33336 L11.9999817,14.6666933 Z" id="path-1"></path>
+    </defs>
+    <g id="Drafts" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="grafico-iconos" transform="translate(-235.000000, -1433.000000)">
+            <g id="Contact/Email" transform="translate(234.000000, 1429.000000)">
+                <polygon id="Bounding-Box" points="0 0 24 0 24 24 0 24"></polygon>
+                <mask id="mask-2" fill="white">
+                    <use xlink:href="#path-1"></use>
+                </mask>
+                <use id="Mask" fill="#FFFFFF" fill-rule="evenodd" xlink:href="#path-1"></use>
+                <g id="Primary/Medium-Blue/Medium-Blue" mask="url(#mask-2)" fill="#1973B8" fill-rule="evenodd">
+                    <rect id="Rectangle" x="0" y="0" width="24" height="24"></rect>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>
