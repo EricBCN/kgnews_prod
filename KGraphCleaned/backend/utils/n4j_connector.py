@@ -130,7 +130,7 @@ class N4jConnector():
 
     ### Get news
     # 获取某一时间段内，某个ods或者所有ods的News信息，返回的News按照ODS权重由高到低排列
-    def get_range_news(self, from_date=None, to_date=None, osd=None, limit=constants.LIMIT_NEWS):
+    def get_range_news(self, from_date=None, to_date=None, osd=None, limit=constants.LIMIT_NEWS, entity=""):
         # Build query
         query = MATCH_NEWS + build_datetime_clause("n.date", from_date, to_date)
         if osd and osd > 0:
@@ -138,8 +138,13 @@ class N4jConnector():
         else:
             query += " AND not n.odsID = 0"
 
+        if entity and entity != "" and entity.lower() != "all":
+            # query += " AND toLower(n.entity)='{0}'".format(entity.lower())
+            query += " AND '{0}' in n.entity".format(entity.lower())
+            # query += " AND '{0}' in n.entity".format(entity)
+
         query += " RETURN distinct n.id as ID, n.title as title, n.url as url, n.date as date, n.sentiment as sentiment," \
-                 " n.source as source, n.ODSweight as peso, n.odsID as ODS_ID" \
+                 " n.source as source, n.ODSweight as peso, n.odsID as ODS_ID, n.entity as entity" \
                  " ORDER BY n.ODSweight DESC LIMIT " + str(limit)
         print(query)
 
@@ -150,7 +155,7 @@ class N4jConnector():
         return results
 
     # 获取某一时间段内，某个ods或者所有ods的News信息，并返回sentiment最negative的News
-    def get_most_negative(self, from_date=None, to_date=None, osd=None):
+    def get_most_negative(self, from_date=None, to_date=None, osd=None, entity=""):
         print('get_most_negative')
         session = self.neo4j.session()
 
@@ -158,9 +163,16 @@ class N4jConnector():
         if osd and osd > 0:
             query += " AND n.odsID = " + str(osd)
         else:
-            query += " AND not n.odsID = 0 "
+            query += " AND not n.odsID = 0"
+
+        if entity and entity != "" and entity.lower() != "all":
+            # query += " AND toLower(n.entity)='{0}'".format(entity.lower())
+            query += " AND '{0}' in n.entity".format(entity.lower())
+            # query += " AND '{0}' in n.entity".format(entity)
+
         query += " RETURN distinct n.id as ID, n.title as title, n.url as url, n.date as date, n.sentiment as sentiment, " \
-                 "n.source as source, n.ODSweight as peso, n.odsID as ODS_ID ORDER BY toFloat(sentiment) ASC, n.ODSweight DESC LIMIT 1"
+                 "n.source as source, n.ODSweight as peso, n.odsID as ODS_ID, n.entity as entity " \
+                 "ORDER BY toFloat(sentiment) ASC, n.ODSweight DESC LIMIT 1"
 
         record = session.run(query).single()
         if not record:
@@ -172,7 +184,7 @@ class N4jConnector():
 
     # The most positive article from a time range
     # 获取某一时间段内，某个ods或者所有ods的News信息，并返回sentiment最positive的News
-    def get_most_positive(self, from_date=None, to_date=None, osd=None):
+    def get_most_positive(self, from_date=None, to_date=None, osd=None, entity=""):
         print('get_most_positive_range')
         session = self.neo4j.session()
 
@@ -180,10 +192,16 @@ class N4jConnector():
         if osd and osd > 0:
             query += " AND n.odsID = " + str(osd)
         else:
-            query += " AND not n.odsID = 0 "
+            query += " AND not n.odsID = 0"
+
+        if entity and entity != "" and entity.lower() != "all":
+            # query += " AND toLower(n.entity)='{0}'".format(entity.lower())
+            query += " AND '{0}' in n.entity".format(entity.lower())
+            # query += " AND '{0}' in n.entity".format(entity)
 
         query += " RETURN distinct n.id as ID, n.title as title, n.url as url, n.date as date, n.sentiment as sentiment, " \
-                 " n.source as source, n.ODSweight as peso, n.odsID as ODS_ID ORDER BY toFloat(sentiment) DESC, n.ODSweight DESC LIMIT 1"
+                 " n.source as source, n.ODSweight as peso, n.odsID as ODS_ID, n.entity as entity" \
+                 " ORDER BY toFloat(sentiment) DESC, n.ODSweight DESC LIMIT 1"
 
         print(query)
         record = session.run(query).single()
@@ -231,7 +249,7 @@ class N4jConnector():
 
     ### GRAFICO 1
     # 统计信息：获取某一时间段内，某个ods或者所有ods的News条数，按照ODS编号排序
-    def get_news_per_sdg(self, date_from, date_to, sdg=None):
+    def get_news_per_sdg(self, date_from, date_to, sdg=None, entity=""):
         print('get_news_per_sdg')
         session = self.neo4j.session()
 
@@ -239,8 +257,14 @@ class N4jConnector():
         if sdg and sdg > 0:
             query += " AND n.odsID = " + str(sdg)
         else:
-            query += " AND not n.odsID = 0 "
-        query += " RETURN n.odsID as ods , count(n) as total ORDER BY n.odsID"
+            query += " AND not n.odsID = 0"
+
+        if entity and entity != "" and entity.lower() != "all":
+            # query += " AND toLower(n.entity)='{0}'".format(entity.lower())
+            query += " AND '{0}' in n.entity".format(entity.lower())
+            # query += " AND '{0}' in n.entity".format(entity)
+
+        query += " RETURN n.odsID as ods, count(n) as total ORDER BY n.odsID"
 
         sdg_list = create_list_from_records(session.run(query))
 
@@ -249,7 +273,7 @@ class N4jConnector():
 
     ### GRAFICO 2
     # 统计信息：获取某一时间段内，每天有最多News条数的ODS编号、News条数、日期
-    def get_ods_per_day(self, date_from, date_to, sdg=None):
+    def get_ods_per_day(self, date_from, date_to, sdg=None, entity=""):
         print('get_ods_per_day')
 
         # MATCH (n:News_en {isitODS : 1} ) WHERE datetime(n.date)  >= datetime('2020-05-18T00:00:00')  AND datetime(n.date) < datetime('2020-05-20T00:00:00')
@@ -262,7 +286,13 @@ class N4jConnector():
         if sdg and sdg > 0:
             query += " AND n.odsID = " + str(sdg)
         else:
-            query += " AND not n.odsID = 0 "
+            query += " AND not n.odsID = 0"
+
+        if entity and entity != "" and entity.lower() != "all":
+            # query += " AND toLower(n.entity)='{0}'".format(entity.lower())
+            query += " AND '{0}' in n.entity".format(entity.lower())
+            # query += " AND '{0}' in n.entity".format(entity)
+
         query += " with date(datetime(n.date)) as day, n.odsID as ods, count(n.id) as total return day, ods, total order by day asc, total desc "
 
         # print('query', query)
@@ -280,3 +310,33 @@ class N4jConnector():
         session.close()
 
         return results
+
+
+# if __name__ == '__main__':
+#     CFG_PATH = '../config/config.json'
+#
+#     with open(CFG_PATH, encoding='utf-8-sig') as file:
+#         CONFIG = json.load(file)
+#
+#     user = CONFIG['neo4j']['user']
+#     url = CONFIG['neo4j']['url']
+#     password = CONFIG['neo4j']['password']
+#     n4j_conn = N4jConnector(url, user=user, password=password)
+#
+#     import datetime
+#     date_from = '2022-01-01'
+#     date_to = '2022-12-31'
+#     DATE_FORMAT = '%Y-%m-%d'
+#     from_date = datetime.datetime.strptime(date_from, DATE_FORMAT)
+#     to_date = datetime.datetime.strptime(date_to, DATE_FORMAT)
+#     to_date = to_date + timedelta(days=1)
+#
+#     sdg = None
+#     news_limit = CONFIG['news_limit']
+#     entity = "World Bank"
+#
+#     news = n4j_conn.get_range_news(from_date, to_date, osd=sdg, limit=news_limit, entity=entity)
+#     print(news)
+#     output = json.loads(news)
+#     print(output)
+
