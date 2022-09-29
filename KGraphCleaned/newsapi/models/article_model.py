@@ -1,5 +1,4 @@
 import datetime
-
 from mongokit_ng.document import Document
 
 __all__ = [
@@ -24,6 +23,7 @@ class Article(Document):
         'source': str,
         'source_type': str,
         'content': str,
+        "entity": [],
         'tags': dict,
     }
 
