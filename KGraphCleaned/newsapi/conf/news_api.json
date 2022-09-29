@@ -1,5 +1,5 @@
 {
-     "es": {
+    "es": {
       "domains": [
         "bbc.com",
         "educaciontrespuntocero.com",
@@ -91,7 +91,16 @@
          "01-FinPobreza", "02-HambreCero", "03-SaludBienestar", "04-EducacionCalidad", "05-Igualdad",
          "06-AguaSaneamiento", "07-Energía", "08-TrabajoDecente", "09-Industria", "10-Desigualdades",
          "11-CiudadesSostenibles", "12-ProducciónConsumo", "13-AccionClima", "14-VidaSubmarina", "15-VidaTerrestre",
-         "16-PazJusticia", "17-Alianzas"]
+         "16-PazJusticia", "17-Alianzas"],
+      "entities": [
+        "Banco Santander",
+        "BBVA",
+        "CaixaBank",
+        "Bankinter",
+        "Banco Sabadell",
+        "Openbank",
+        "ING"
+      ]
     },
     "en": {
       "domains": [
@@ -301,6 +310,12 @@
         "01-NoPoverty", "02-ZeroHunger", "03-GoodHealth", "04-QualityEducation", "05-GenderEquality", "06-Clean Water",
         "07-Clean Energy", "08-DecentWork", "09-Industry", "10-ReducedInequalities", "11-Sustainable Cities",
         "12-Responsible Consumption", "13-Climate Action", "14-Life below water", "15-Life on Land", "16-Peace Justice",
-        "17-Partnerships"]
+        "17-Partnerships"],
+      "entities": [
+        "World Bank",
+        "Goldman Sachs",
+        "J.P. Morgan",
+        "HSBC"
+      ]
     }
 }
