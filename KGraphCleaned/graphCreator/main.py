@@ -1,6 +1,6 @@
 from neo4j_functions import last_id
 from graphCreator import calcula
-from mongo import get_articles
+from mongo import *
 import schedule
 from multiprocessing import Pool
 import sys
@@ -14,31 +14,33 @@ lang = "en"
 def launch():
     print(f'Executing graph creator')
     datos = []
-    fila = 3
 
     # print("Ultimo ID: " + str(last_id(lang)[0]))
     # modify: if last_id(lang)[0] is None:
-    if len(last_id(lang)) == 0 or last_id(lang)[0] is None:
-        articulos = get_articles(0, lang)
-    else:
-        articulos = get_articles(int(last_id(lang)[0]), lang)
 
-    for post in articulos:
+    # if len(last_id(lang)) == 0 or last_id(lang)[0] is None:
+    #     articulos = get_articles(0, lang)
+    # else:
+    #     articulos = get_articles(int(last_id(lang)[0]), lang)
+
+    articles = get_unprocessed_articles(lang)
+
+    for post in articles:
         if post["title"] is None:
-            titulo = ""
+            title = ""
         else:
-            titulo = post["title"]
-        fecha = post["published_at"]
+            title = post["title"]
+
+        date = post["published_at"]
         datos.append({
             "url": post["url"],
-            "fila": (fila - 2) * 3,
+            "fila": post["_id"],
             "_id": post["_id"],
-            "date": fecha.strftime("%Y-%m-%dT%H:%M:%S"),
+            "date": date.strftime("%Y-%m-%dT%H:%M:%S"),
             "source": post["source"],
-            "title": titulo.replace('"', '').replace("'", ''),
+            "title": title.replace('"', '').replace("'", ''),
             "lang": post["language"]
         })
-        fila += 1
 
     print('Get {0} articles.'.format(len(datos)))
 
@@ -50,6 +52,7 @@ def launch():
         p.map(calcula, datos)
     except TypeError:
         print(str(sys.exc_info()))
+
     # end
 
 
@@ -69,4 +72,5 @@ def weekly_scheduler(at_time):
 
 
 if __name__ == '__main__':
-    weekly_scheduler(DAILY_TIME)
+    # weekly_scheduler(DAILY_TIME)
+    launch()

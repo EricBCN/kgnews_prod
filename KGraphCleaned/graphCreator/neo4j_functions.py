@@ -1,12 +1,15 @@
 # Funciones Neo4J
 import neo4j
 from neo4j import GraphDatabase
+import mongo
 from multiprocessing import Pool
 import sys
 
-url = "bolt://192.168.75.132:7687"
+# url = "bolt://192.168.1.95:7687"
+url = "bolt://127.0.0.1:7687"
 user = "neo4j"
 password = "~~86*trust*SORRY*talk*55~~"
+# password = "neo4j"
 
 driver = GraphDatabase.driver(url, auth=(user, password))
 
@@ -180,19 +183,21 @@ def porcientos(lang):
 # Funciones para insertar las noticias en el grafo
 def add_sentence(text, sentiment, frase_anterior, lang):
     session = driver.session()
-    command = "MATCH (se:Sentence_{0} {{text: '{1}'}}) RETURN ID(se)".format(lang, text)
+    text = process_quotation_mark(text)
+
+    command = "MATCH (se:Sentence_{0} {{text: {1}}}) RETURN ID(se)".format(lang, text)
     result = session.run(command)
 
     if result.single() is None:
         # tx = session.begin_transaction()
-        command = "CREATE (a:Sentence_{0} {{text: '{1}', sentiment: '{2}'}}) RETURN ID(a)".format(lang, text, sentiment)
+        command = "CREATE (a:Sentence_{0} {{text: {1}, sentiment: '{2}'}}) RETURN ID(a)".format(lang, text, sentiment)
         session.run(command)
         # tx.commit()
     session.close()
 
     session = driver.session()
     tx2 = session.begin_transaction()
-    command = "MATCH (se1:Sentence_{0} {{text: '{1}'}}) " \
+    command = "MATCH (se1:Sentence_{0} {{text: {1}}}) " \
               "MATCH (se2:Sentence_{0}) WHERE id(se2)={2} " \
               "CREATE (se1)-[:PREVIOUS_SENTENCE_{0}]->(se2)".format(lang, text, frase_anterior)
     tx2.run(command)
@@ -218,17 +223,33 @@ def add_token(token, concept, lang):
     session.close()
 
 
-def add_News(text, sentiment, _url, _id, date, source, title, image_url, lang):
+def process_quotation_mark(text):
+    if "'" in text:
+        text = text.replace("'", "\\'")
+
+    return "'" + text + "'"
+
+
+def add_news(text, sentiment, _url, _id, date, source, title, image_url, lang, entity):
     session = driver.session()
     command = "MATCH (ne:News_{0} {{text: '{1}'}}) RETURN ne.text".format(lang, text)
     result = session.run(command)
 
     if result.single() is None:
         tx = session.begin_transaction()
-        command = "CREATE (n:News_{0} {{text: '{1}', sentiment: '{2}', url: '{3}', image_url: '{4}', id: '{5}', " \
-                  "date: '{6}', source: '{7}', title: '{8}', covid: 0, odsID: 0}})".format(lang, text, sentiment, _url,
+
+        text = process_quotation_mark(text)
+        sentiment = process_quotation_mark(sentiment)
+        _url = process_quotation_mark(_url)
+        image_url = process_quotation_mark(image_url)
+        source = process_quotation_mark(source)
+        title = process_quotation_mark(title)
+        entity = [process_quotation_mark(ent) for ent in entity]
+
+        command = "CREATE (n:News_{0} {{text: {1}, sentiment: {2}, url: {3}, image_url: {4}, id: '{5}', " \
+                  "date: '{6}', source: {7}, title: {8}, entity: {9}, covid: 0, odsID: 0}})".format(lang, text, sentiment, _url,
                                                                                            image_url, _id, date, source,
-                                                                                           title)
+                                                                                           title, entity)
         tx.run(command)
         tx.commit()
     session.close()
@@ -238,9 +259,14 @@ def add_news_sentence_relation(text, sentence, date, lang):
     # try:
     session = driver.session()
     tx = session.begin_transaction()
-    command = "MATCH (ne:News_{0} {{text: '{1}'}}) " \
-              "MATCH (se:Sentence_{0} {{text: '{2}'}}) " \
-              "CREATE (se)-[:NEWS_SENTENCE_{0} {{date: '{3}'}}]->(ne)".format(lang, text, sentence, date)
+
+    text = process_quotation_mark(text)
+    sentence = process_quotation_mark(sentence)
+    date = process_quotation_mark(date)
+
+    command = "MATCH (ne:News_{0} {{text: {1}}}) " \
+              "MATCH (se:Sentence_{0} {{text: {2}}}) " \
+              "CREATE (se)-[:NEWS_SENTENCE_{0} {{date: {3}}}]->(ne)".format(lang, text, sentence, date)
     tx.run(command)
     tx.commit()
     session.close()
@@ -250,8 +276,12 @@ def add_token_sentence_relation(concept, sentence, entity_type, date, lang):
     # try:
     session = driver.session()
     tx = session.begin_transaction()
-    command = "MATCH (en:Token_{0} {{concept: '{1}'}}) " \
-              "MATCH (se:Sentence_{0} {{text: '{2}'}}) " \
+
+    concept = process_quotation_mark(concept)
+    sentence = process_quotation_mark(sentence)
+
+    command = "MATCH (en:Token_{0} {{concept: {1}}}) " \
+              "MATCH (se:Sentence_{0} {{text: {2}}}) " \
               "CREATE (en)-[:TOKEN_BELONGS_TO_{0} {{entity_type: '{3}', date: '{4}'}}]->(se)".format(lang, concept,
                                                                                                      sentence,
                                                                                                      entity_type, date)
@@ -276,11 +306,13 @@ def add_token_sentence_relation(concept, sentence, entity_type, date, lang):
 def inserta_relacion_News_ODS(news, pesos, date, maxODS, maxValor, esODS, lang):
     # try:
     session = driver.session()
+    news = process_quotation_mark(news)
 
     i = 1
     for peso in pesos:
         tx = session.begin_transaction()
-        command = "MATCH (ne:News_{0} {{text: '{1}'}}) MATCH (od:ODS_{0} {{id: {2}}}) " \
+
+        command = "MATCH (ne:News_{0} {{text: {1}}}) MATCH (od:ODS_{0} {{id: {2}}}) " \
                   "CREATE (od)-[:NEWS_ODS_{0} {{peso: {3}, date: '{4}'}}]->(ne)".format(lang, news, str(i),
                                                                                         str(peso), date)
         tx.run(command)
@@ -288,7 +320,7 @@ def inserta_relacion_News_ODS(news, pesos, date, maxODS, maxValor, esODS, lang):
         tx.commit()
 
     tx = session.begin_transaction()
-    command = "MATCH (ne:News_{0} {{text: '{1}'}}) " \
+    command = "MATCH (ne:News_{0} {{text: {1}}}) " \
               "SET ne.odsID = {2}, ne.ODSweight = {3}, ne.isitODS = {4}".format(lang, news, maxODS, maxValor, esODS)
     tx.run(command)
     tx.commit()
@@ -321,8 +353,10 @@ def id_in_graph(lang, id):
 
 def actualiza_covid(news, lang):
     session = driver.session()
+    news = process_quotation_mark(news)
+
     command = "MATCH (n:News_{0})-[r]-(s:Sentence_{0})-[]-(t:Token_{0}) " \
-              "WHERE t.text in ['covid', 'coronavirus', 'pandemic', 'covid-19', 'covid 19'] and n.text = '{1}' " \
+              "WHERE t.text in ['covid', 'coronavirus', 'pandemic', 'covid-19', 'covid 19'] and n.text = {1} " \
               "RETURN distinct n".format(lang, news)
     result = session.run(command)
 
@@ -330,8 +364,44 @@ def actualiza_covid(news, lang):
         print("La noticia es sobre covid. Texto : " + news)
 
         tx = session.begin_transaction()
-        command = "MATCH (ne:News_{0} {{text: '{1}'}}) SET ne.covid = 1".format(lang, news)
+        command = "MATCH (ne:News_{0} {{text: {1}}}) SET ne.covid = 1".format(lang, news)
         tx.run(command)
         tx.commit()
 
     session.close()
+
+
+def delete_news(command):
+    session = driver.session()
+    tx = session.begin_transaction()
+    tx.run(command)
+    tx.commit()
+
+
+def delete_isolated_nodes():
+    session = driver.session()
+    tx = session.begin_transaction()
+    tx.run("MATCH (n) WHERE NOT (n)--() delete n")
+    tx.commit()
+
+
+def update_entity(lang):
+    session = driver.session()
+    command = "MATCH (n:News_{0}) RETURN n".format(lang)
+    result = session.run(command)
+
+    for news in result.values():
+        _id = news[0]['id']
+        doc = mongo.get_article_by_id(int(_id))
+        entity = doc['entity']
+        command = "MATCH (n:News_{0}) WHERE n.id = '{1}' SET n.entity = {2}".format(lang, _id, entity)
+        tx = session.begin_transaction()
+        tx.run(command)
+        tx.commit()
+
+
+if __name__ == "__main__":
+    # command = "match (n:News_en) where n.date >= '2022-09-01' detach delete n"
+    # delete_news(command)
+    # delete_isolated_nodes()
+    update_entity("en")
