@@ -1,7 +1,9 @@
 from mongokit_ng.connection import Connection
 
-from models.article_model import Article
-from logger import logger
+# from models.article_model import Article
+from ..models.article_model import Article
+# from logger import logger
+from ..logger import logger
 
 __all__ = [
     'connection',
@@ -21,10 +23,11 @@ __all__ = [
 
 # Local
 CONSTANTS = {
-    'HOST': '172.31.12.215',
+    # 'HOST': '172.31.12.215',
+    'HOST': '127.0.0.1',
     'PORT': 27017,
-    'USERNAME': 'root',
-    'PASSWORD': '$$52$verb$REALIZE$market$25$$',
+    # 'USERNAME': 'root',
+    # 'PASSWORD': '$$52$verb$REALIZE$market$25$$',
     'AUTH_MECHANISM': 'SCRAM-SHA-1',
     'DATABASE': 'KGNews',
     'COLLECTION': 'news'
@@ -34,9 +37,9 @@ logger.debug('Initializing MongoKit connection')
 connection = Connection(
     host=CONSTANTS['HOST'],
     port=CONSTANTS['PORT'],
-    username=CONSTANTS['USERNAME'],
-    password=CONSTANTS['PASSWORD'],
-    authMechanism=CONSTANTS['AUTH_MECHANISM']
+    # username=CONSTANTS['USERNAME'],
+    # password=CONSTANTS['PASSWORD'],
+    # authMechanism=CONSTANTS['AUTH_MECHANISM']
 )
 
 logger.debug('Registering models')
@@ -51,3 +54,20 @@ def get_next_id():
     )
     return doc["sequence_value"]
 
+
+def get_doc_by_url(url):
+    return connection.KGNews.news.find_one({"url": url})
+
+
+def update_entity(_id, entity):
+    connection.KGNews.news.update_many(
+        {"_id": _id},
+        {'$set': {'entity': entity}}
+    )
+
+
+def set_entity_empty():
+    connection.KGNews.news.update_many(
+        {},
+        {'$set': {'entity': []}}
+    )

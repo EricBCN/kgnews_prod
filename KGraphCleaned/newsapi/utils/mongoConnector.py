@@ -32,17 +32,25 @@ class MongoConnector():
         self.USERNAME = 'root'
 
         # AWS
-        self.IP = '172.31.12.215'
+        # self.IP = '172.31.12.215'
+        # self.PORT = 27017
+        # self.PASSWORD = '$$52$verb$REALIZE$market$25$$'
+        # self.DATABASE = 'KGNews'
+
+        # local
+        self.USERNAME = ''
+        self.IP = '127.0.0.1'
         self.PORT = 27017
-        self.PASSWORD = '$$52$verb$REALIZE$market$25$$'
+        self.PASSWORD = ''
         self.DATABASE = 'KGNews'
 
 
         # CLIENT
-        print('Connecting to ', self.IP, ':', self.PORT, ' with user ', self.USERNAME)
+        # print('Connecting to ', self.IP, ':', self.PORT, ' with user ', self.USERNAME)
         # self.myclient = pymongo.MongoClient('mongodb://' + self.IP + ':' + str(self.PORT) + '/', username=self.USERNAME, password=self.PASSWORD, authMechanism=self.AUTH_MECHANISM)
-        connString = 'mongodb://{0}:{1}@{2}:{3}/?authMechanism=SCRAM-SHA-1'.format(self.USERNAME, self.PASSWORD, self.IP, self.PORT)
-        print(connString)
+        # connString = 'mongodb://{0}:{1}@{2}:{3}/?authMechanism=SCRAM-SHA-1'.format(self.USERNAME, self.PASSWORD, self.IP, self.PORT)
+        connString = 'mongodb://127.0.0.1'
+        # print(connString)
 
         self.myclient = pymongo.MongoClient(connString)
         self.mydb = self.myclient[self.DATABASE]
@@ -56,8 +64,10 @@ class MongoConnector():
         """
 
         # COLLECTIONS
-        self.news_Collection =  self.mydb["news"]
+        self.news_Collection = self.mydb["news"]
         self.counter_collection = self.mydb["counters"]
+        self.ids_collection = self.mydb["ids"]
+
         if not self.counter_collection.find_one({"_id": "news_id"}):
             self.counter_collection.insert_one({"_id": "news_id", "sequence_value": 0})
 
@@ -84,6 +94,16 @@ class MongoConnector():
             print('Article without url!')
         return inserted
 
+    def insert_id(self, info):
+        res = self.ids_collection.insert_one(
+            {
+                "_id": info["_id"],
+                "language": info["language"]
+            }
+        )
+
+        return res
+
     def get_next_id(self):
         doc = self.counter_collection.find_one_and_update(
             {"_id": "news_id"},
@@ -93,6 +113,10 @@ class MongoConnector():
 
     def delete_one(self, query):
         self.news_Collection.delete_one(query)
+
+    def delete_many(self, query):
+        result = self.news_Collection.delete_many(query)
+        print(result.deleted_count, " documents deleted.")
 
     def delete_all(self, collection):
         result = collection.delete_many({})
