@@ -2,9 +2,9 @@
 # import sys
 #
 # print(sys.path)
+import os.path
 
-from flask import Flask
-from flask import request
+from flask import Flask, request, send_from_directory
 from flask_restx import Api, Resource
 from datetime import timedelta
 import datetime
@@ -14,11 +14,13 @@ import json
 from flask_cors import CORS
 
 from utils.errors import errors, SchemaValidationError, WrongFormatFields, InternalServerError
-
+from utils.importFunctions import *
 from utils.haystack_connector import QueryConnector
 # 修改 from utils.cdqa_connector import CdqaConnector
 
 from utils.n4j_connector import N4jConnector
+from werkzeug.utils import secure_filename
+
 
 import logging
 
@@ -47,7 +49,11 @@ logging.basicConfig(level=logging.DEBUG)
 
 logger = logging.getLogger('apiLogger')
 
+UPLOAD_FOLDER = "upload" #os.path.join(os.getcwd(), 'uploads')
+ALLOWED_EXTENSIONS = {'pdf'}
+
 flask_app = Flask(__name__)
+flask_app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 api = Api(app=flask_app, errors=errors)
 CORS(flask_app)
 
@@ -69,20 +75,85 @@ name_space = api.namespace('news', description='News API')
 ns_tokens = api.namespace('tokens', description='Tokens APIs')
 ns_statistics = api.namespace('stats', description='Statistics')
 ns_queries = api.namespace('queries', description='Queries')
+ns_import = api.namespace('import', description='Generate News Graph')
+
+
+# 输入url在neo4j中生成节点
+@ns_import.route("/url")
+class MainClass(Resource):
+    @api.doc(params={'url': {'description': 'url of news', 'type': 'string', 'required': True}})
+    def post(self):
+        try:
+            url = request.form['url']
+            content, title, flag = get_content_from_url(url)
+            result = import_document(flag, url, title, "en", content, "url")
+
+            return result
+        except Exception as error:
+            return {"result": str(error)}
+
+
+# @api.doc(params={'file': {'description': 'pdf file', 'type': 'file', 'required': True}})
+@ns_import.route("/file")
+class MainClass(Resource):
+    @api.doc(params={'filename': {'description': 'name of file', 'type': 'string', 'required': True}})
+    def get(self):
+        directory_path = os.path.join(sys.path[0], flask_app.config['UPLOAD_FOLDER'])
+        filename = request.args.get('filename')
+
+        if os.path.isfile(os.path.join(directory_path, filename)):
+            return send_from_directory(directory_path, filename, as_attachment=True)
+
+        return None
+
+    def post(self):
+        try:
+            if 'file' not in request.files:
+                return {"result": "Fail to get the file"}
+
+            file = request.files['file']
+
+            if file.name == "":
+                return {"result": "No selected file"}
+
+            if file and '.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS:
+                # filename = secure_filename(file.filename)
+                filename = file.filename
+                filepath = os.path.join(sys.path[0], flask_app.config['UPLOAD_FOLDER'], filename)
+
+                if os.path.exists(filepath):
+                    return {"result": "Error: This file has already existed in the database."}
+
+                file.save(filepath)
+
+                content, title, flag = get_content_from_pdf(filepath)
+                result = import_document(flag, filename, title, "en", content, "pdf")
+                # delete_file(filepath)
+
+                return result
+            else:
+                return {"result": "Error: This file is not a PDF file. Please choose another one."}
+        except Exception as error:
+            return {"result": str(error)}
 
 
 # 查询某一时间段内sentiment最positive的ODS新闻
-@api.doc(params={'date_from': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True}, \
-                 'date_to': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True}})
+@api.doc(params={'date_from': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True},
+                 'date_to': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True},
+                 'entity': {'description': 'Entity or Organization', 'type': 'string', 'required': False}})
 @name_space.route("/positive")
 class MainClass(Resource):
     @api.doc(params={'sdg': {'description': 'Specify the number of SDG', 'required': False, 'enum': ODS_ARRAY}})
     def get(self):
         date_from = request.args.get('date_from')
         date_to = request.args.get('date_to')
+        entity = request.args.get('entity')
+
         if not date_from or not date_to:
             return {"error": "Request is missing required fields", "status": 400}
         arg_sdg = request.args.get('sdg')
+        sdg = 0
+
         if arg_sdg:
             sdg = int(arg_sdg)
         print('SDG:', sdg, 'from:', date_from, 'to', date_to)
@@ -91,7 +162,7 @@ class MainClass(Resource):
             from_date = datetime.datetime.strptime(date_from, DATE_FORMAT)
             to_date = datetime.datetime.strptime(date_to, DATE_FORMAT)
             to_date = to_date + timedelta(days=1)
-            news = n4j_conn.get_most_positive(from_date, to_date, sdg)
+            news = n4j_conn.get_most_positive(from_date, to_date, sdg, entity)
             print('result', news)
             return json.loads(news)
         except ValueError as err:
@@ -99,18 +170,23 @@ class MainClass(Resource):
 
 
 # 查询某一时间段内sentiment最negative的ODS新闻
-@api.doc(params={'date_from': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True}, \
-                 'date_to': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True}})
+@api.doc(params={'date_from': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True},
+                 'date_to': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True},
+                 'entity': {'description': 'Entity or Organization', 'type': 'string', 'required': False}})
 @name_space.route("/negative")
 class MainClass(Resource):
     @api.doc(params={'sdg': {'description': 'Specify the number of SDG', 'required': False, 'enum': ODS_ARRAY}})
     def get(self):
         date_from = request.args.get('date_from')
         date_to = request.args.get('date_to')
+        entity = request.args.get('entity')
+
         if not date_from or not date_to:
             return {"error": "Request is missing required fields", "status": 400}
 
         arg_sdg = request.args.get('sdg')
+        sdg = 0
+
         if arg_sdg:
             sdg = int(arg_sdg)
         print('SDG:', sdg, 'from:', date_from, 'to', date_to)
@@ -119,7 +195,7 @@ class MainClass(Resource):
             from_date = datetime.datetime.strptime(date_from, DATE_FORMAT)
             to_date = datetime.datetime.strptime(date_to, DATE_FORMAT)
             to_date = to_date + timedelta(days=1)
-            news = n4j_conn.get_most_negative(from_date, to_date, sdg)
+            news = n4j_conn.get_most_negative(from_date, to_date, sdg, entity)
             return json.loads(news)
         except ValueError as err:
             print(err)
@@ -127,8 +203,9 @@ class MainClass(Resource):
 
 
 # 查询某一时间段内的ODS新闻
-@api.doc(params={'date_from': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True}, \
-                 'date_to': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True}})
+@api.doc(params={'date_from': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True},
+                 'date_to': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True},
+                 'entity': {'description': 'Entity or Organization', 'type': 'string', 'required': False}})
 @name_space.route("/")
 class MainClass(Resource):
     @api.doc(params={'sdg': {'description': 'Specify the number of SDG', 'required': False, 'enum': ODS_ARRAY}})
@@ -136,6 +213,8 @@ class MainClass(Resource):
         sdg = None
         date_from = request.args.get('date_from')
         date_to = request.args.get('date_to')
+        entity = request.args.get('entity')
+
         if not date_from or not date_to:
             return {"error": "Request is missing required fields", "status": 400}
         arg_sdg = request.args.get('sdg')
@@ -148,7 +227,7 @@ class MainClass(Resource):
             from_date = datetime.datetime.strptime(date_from, DATE_FORMAT)
             to_date = datetime.datetime.strptime(date_to, DATE_FORMAT)
             to_date = to_date + timedelta(days=1)
-            news = n4j_conn.get_range_news(from_date, to_date, osd=sdg, limit=news_limit)
+            news = n4j_conn.get_range_news(from_date, to_date, osd=sdg, limit=news_limit, entity=entity)
             print(news)
             return json.loads(news)
         except ValueError as err:
@@ -157,7 +236,7 @@ class MainClass(Resource):
 
 #### TOKENS #####
 # 获取某一时间段内，ODS新闻的Token信息
-@api.doc(params={'date_from': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True}, \
+@api.doc(params={'date_from': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True},
                  'date_to': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'default': None}})
 @ns_tokens.route("/")
 class MainClass(Resource):
@@ -190,14 +269,17 @@ class MainClass(Resource):
 
 # News per SDG
 # 统计信息：获取某一时间段内，某个ods或者所有ods的News条数，按照ODS编号排序
-@api.doc(params={'date_from': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True, 'default': None}, \
-                 'date_to': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True, 'default': None}})
+@api.doc(
+    params={'date_from': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True, 'default': None},
+            'date_to': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True, 'default': None},
+            'entity': {'description': 'Entity or Organization', 'type': 'string', 'required': False}})
 @ns_statistics.route("/news_sdg")
 class MainClass(Resource):
     @api.doc(params={'sdg': {'description': 'Specify the number of SDG', 'required': False, 'enum': ODS_ARRAY}})
     def get(self):
         date_from = request.args.get('date_from')
         date_to = request.args.get('date_to')
+        entity = request.args.get('entity')
 
         if not date_from or not date_to:
             return {"error": "Request is missing required fields", "status": 400}
@@ -209,7 +291,7 @@ class MainClass(Resource):
             from_date = datetime.datetime.strptime(date_from, DATE_FORMAT)
             to_date = datetime.datetime.strptime(date_to, DATE_FORMAT)
             to_date = to_date + timedelta(days=1)
-            tokens = n4j_conn.get_news_per_sdg(from_date, to_date, sdg)
+            tokens = n4j_conn.get_news_per_sdg(from_date, to_date, sdg, entity)
             print(tokens)
             return json.loads(tokens)
         except ValueError as err:
@@ -217,14 +299,18 @@ class MainClass(Resource):
 
 
 # 统计信息：获取某一时间段内，每天有最多News条数的ODS编号、News条数、日期
-@api.doc(params={'date_from': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True, 'default': None}, \
-                 'date_to': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True, 'default': None}})
+@api.doc(
+    params={'date_from': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True, 'default': None},
+            'date_to': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True, 'default': None},
+            'entity': {'description': 'Entity or Organization', 'type': 'string', 'required': False}})
 @ns_statistics.route("/ods_day")
 class MainClass(Resource):
     @api.doc(params={'sdg': {'description': 'Specify the number of SDG', 'required': False, 'enum': ODS_ARRAY}})
     def get(self):
         date_from = request.args.get('date_from')
         date_to = request.args.get('date_to')
+        entity = request.args.get('entity')
+
         if not date_from or not date_to:
             return {"error": "Request is missing required fields", "status": 400}
         arg_sdg = request.args.get('sdg')
@@ -237,7 +323,7 @@ class MainClass(Resource):
             from_date = datetime.datetime.strptime(date_from, DATE_FORMAT)
             to_date = datetime.datetime.strptime(date_to, DATE_FORMAT)
             to_date = to_date + timedelta(days=1)
-            odss = n4j_conn.get_ods_per_day(from_date, to_date, sdg)
+            odss = n4j_conn.get_ods_per_day(from_date, to_date, sdg, entity)
             print(odss)
             return odss
         except ValueError as err:
@@ -251,7 +337,7 @@ DEFAULT_Q_CANDIDATES = 20
 DEFAULT_Q_READERS = 3
 
 
-@api.doc(params={'date_from': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': False}, \
+@api.doc(params={'date_from': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': False},
                  'date_to': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': False}})
 @ns_queries.route("/")
 class MainClass(Resource):
