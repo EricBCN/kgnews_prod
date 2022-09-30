@@ -41,6 +41,15 @@ def get_article_by_id(_id):
     return None
 
 
+def get_all_ids(lang):
+    arts = client.KGNews.news.find({"language": lang})
+    ids = []
+    for art in arts:
+        ids.append(art["_id"])
+
+    return ids
+
+
 def delete_unprocessed_id(_id, lang):
     ids_collection = client.KGNews.ids
     ids_collection.delete_many({

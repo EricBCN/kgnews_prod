@@ -351,6 +351,17 @@ def id_in_graph(lang, id):
         return True
 
 
+def get_unprocessed_articles_in_graph(lang):
+    ids = mongo.get_all_ids(lang)
+    articles_unprocessed = []
+
+    for _id in ids:
+        if id_in_graph(lang, _id) is False:
+            articles_unprocessed.append(mongo.get_article_by_id(_id))
+
+    return articles_unprocessed
+
+
 def actualiza_covid(news, lang):
     session = driver.session()
     news = process_quotation_mark(news)

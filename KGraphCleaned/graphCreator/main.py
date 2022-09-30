@@ -1,6 +1,7 @@
 from neo4j_functions import last_id
 from graphCreator import calcula
 from mongo import *
+from neo4j_functions import *
 import schedule
 from multiprocessing import Pool
 import sys
@@ -23,7 +24,9 @@ def launch():
     # else:
     #     articulos = get_articles(int(last_id(lang)[0]), lang)
 
-    articles = get_unprocessed_articles(lang)
+    # articles = get_unprocessed_articles(lang)
+    articles = get_unprocessed_articles_in_graph(lang)
+    print("Get {0} unprocessed articles.".format(len(articles)))
 
     for post in articles:
         if post["title"] is None:
