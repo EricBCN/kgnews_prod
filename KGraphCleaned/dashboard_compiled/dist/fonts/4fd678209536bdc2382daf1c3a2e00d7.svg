@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="15px" height="15px" viewBox="0 0 15 15" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 55.2 (78181) - https://sketchapp.com -->
+    <title>Alerts/Warning</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <path d="M7.5,14.375 C3.70304235,14.375 0.625,11.2969577 0.625,7.5 C0.625,3.70304235 3.70304235,0.625 7.5,0.625 C11.2969577,0.625 14.375,3.70304235 14.375,7.5 C14.375,11.2969577 11.2969577,14.375 7.5,14.375 Z M6.92708333,6.35416667 L6.92708333,10.3645833 L8.07291667,11.5104167 L8.07291667,6.35416667 L6.92708333,6.35416667 Z M7.5,5.20833333 C7.97461971,5.20833333 8.359375,4.82357804 8.359375,4.34895833 C8.359375,3.87433863 7.97461971,3.48958333 7.5,3.48958333 C7.02538029,3.48958333 6.640625,3.87433863 6.640625,4.34895833 C6.640625,4.82357804 7.02538029,5.20833333 7.5,5.20833333 Z" id="path-1"></path>
+    </defs>
+    <g id="Producto" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="06_E_Error-ejemplo-desplegado" transform="translate(-968.000000, -508.000000)">
+            <g id="Group-8" transform="translate(952.000000, 499.000000)">
+                <g id="Alerts/Info" transform="translate(16.000000, 9.000000)">
+                    <polygon id="Bounding-Box" points="0 0 15 0 15 15 0 15"></polygon>
+                    <mask id="mask-2" fill="white">
+                        <use xlink:href="#path-1"></use>
+                    </mask>
+                    <use id="Mask" fill="#FFFFFF" fill-rule="evenodd" xlink:href="#path-1"></use>
+                    <g id="Primary/Medium-Blue/Medium-Blue" mask="url(#mask-2)" fill="#1973B8" fill-rule="evenodd">
+                        <rect id="Rectangle" x="0" y="0" width="15" height="15"></rect>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="22px" height="6px" viewBox="0 0 22 6" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 55.2 (78181) - https://sketchapp.com -->
+    <title>Navigation/More</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <path d="M3.75,13.8958333 C2.23121694,13.8958333 1,12.7159171 1,11.2604167 C1,9.80491623 2.23121694,8.625 3.75,8.625 C5.26878306,8.625 6.5,9.80491623 6.5,11.2604167 C6.5,12.7159171 5.26878306,13.8958333 3.75,13.8958333 Z M12,13.8958333 C10.4812169,13.8958333 9.25,12.7159171 9.25,11.2604167 C9.25,9.80491623 10.4812169,8.625 12,8.625 C13.5187831,8.625 14.75,9.80491623 14.75,11.2604167 C14.75,12.7159171 13.5187831,13.8958333 12,13.8958333 Z M20.25,13.8958333 C18.7312169,13.8958333 17.5,12.7159171 17.5,11.2604167 C17.5,9.80491623 18.7312169,8.625 20.25,8.625 C21.7687831,8.625 23,9.80491623 23,11.2604167 C23,12.7159171 21.7687831,13.8958333 20.25,13.8958333 Z" id="path-1"></path>
+    </defs>
+    <g id="Symbols" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Parts/planificacion_despliegue" transform="translate(-262.000000, -20.000000)">
+            <g id="Navigation/More" transform="translate(261.000000, 12.000000)">
+                <polygon id="Bounding-Box" points="0 0 24 0 24 23 0 23"></polygon>
+                <mask id="mask-2" fill="white">
+                    <use xlink:href="#path-1"></use>
+                </mask>
+                <use id="Mask" fill="#FFFFFF" fill-rule="evenodd" xlink:href="#path-1"></use>
+                <g id="Primary/Medium-Blue/Medium-Blue" mask="url(#mask-2)" fill="#1464A5" fill-rule="evenodd">
+                    <rect id="Rectangle" x="0" y="0" width="24" height="23"></rect>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

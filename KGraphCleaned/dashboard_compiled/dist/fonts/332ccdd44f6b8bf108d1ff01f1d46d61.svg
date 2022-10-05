@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="13px" height="15px" viewBox="0 0 13 15" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 55.2 (78181) - https://sketchapp.com -->
+    <title>Actions/Trash1</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <path d="M3.80681818,1.76136364 L5.22727273,1.76136364 L5.22727273,1.62846695 C5.22727273,1.07426746 5.67972617,0.625 6.23605641,0.625 L8.76394359,0.625 C9.32107943,0.625 9.77272727,1.06320468 9.77272727,1.62846695 L9.77272727,1.76136364 L12.6136364,1.76136364 L13.75,1.76136364 L13.75,3.46590909 L12.6136364,3.46590909 L12.6136364,13.2595662 C12.6136364,13.8128436 12.1741832,14.2613636 11.6143811,14.2613636 L3.38561893,14.2613636 C2.83374547,14.2613636 2.38636364,13.816482 2.38636364,13.2595662 L2.38636364,3.46590909 L1.25,3.46590909 L1.25,1.76136364 L3.80681818,1.76136364 Z M5.22727273,12.5568182 L5.22727273,7.44318182 L4.09090909,7.44318182 L4.09090909,11.4204545 L5.22727273,12.5568182 Z M8.06818182,12.5568182 L8.06818182,7.44318182 L6.93181818,7.44318182 L6.93181818,11.4204545 L8.06818182,12.5568182 Z M10.9090909,12.5568182 L10.9090909,7.44318182 L9.77272727,7.44318182 L9.77272727,11.4204545 L10.9090909,12.5568182 Z" id="path-1"></path>
+    </defs>
+    <g id="Producto" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="02_A_Documentación" transform="translate(-487.000000, -475.000000)">
+            <g id="Actions/Trash" transform="translate(486.000000, 475.000000)">
+                <polygon id="Bounding-Box" points="0 0 15 0 15 15 0 15"></polygon>
+                <mask id="mask-2" fill="white">
+                    <use xlink:href="#path-1"></use>
+                </mask>
+                <use id="Mask" fill="#FFFFFF" fill-rule="evenodd" xlink:href="#path-1"></use>
+                <g id="Primary/Medium-Blue/Medium-Blue" mask="url(#mask-2)" fill="#1973B8" fill-rule="evenodd">
+                    <rect id="Rectangle" x="0" y="0" width="15" height="15"></rect>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>
