@@ -2,7 +2,6 @@ from logger import logger
 from nlp.tagger import spacy_ner_tagger
 from scrapper.scrapper import scrapper
 from extractors.news_api import NewsAPI
-import utils.mongokit as mongokit
 
 
 def main():
@@ -25,5 +24,5 @@ def main():
 
 
 if __name__ == '__main__':
-    mongokit.set_entity_empty()
+    # mongokit.set_entity_empty()
     main()
