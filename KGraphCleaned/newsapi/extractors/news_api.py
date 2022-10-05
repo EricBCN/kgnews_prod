@@ -3,6 +3,8 @@ import os
 import datetime
 from datetime import date
 from datetime import timedelta
+
+import mongokit_ng
 from logger import logger
 
 import requests
@@ -25,7 +27,7 @@ proxies = False
 auth = HTTPProxyAuth("IMM0632", "GL080817")
 
 
-## ___________ CLASS DEFINITION ___________________
+# ___________ CLASS DEFINITION ___________________
 class NewsAPI(Extractor):
 
     def __init__(self, language='en', path=DEFAULT_PATH):
@@ -34,7 +36,7 @@ class NewsAPI(Extractor):
         self.TODAY_DATE = date.today().strftime('%Y-%m-%d')
         # self.API_KEY = os.getenv('NEWS_API_KEY') or '66f22d5add7b47c7b984db75104444b1' # Xin's key
         # self.API_KEY = os.getenv('NEWS_API_KEY') or 'c9c775e2bfcf4537aca5429864f0f3ee'
-        self.API_KEY = os.getenv('NEWS_API_KEY') or 'f461eac24b794c38b77506686f72652d'
+        self.API_KEY = os.getenv('NEWS_API_KEY') or '1b632fa500ef4dc7a7f364c48462b403'
         self.WRITE_CSV = False
         self.BASE_URL = os.getenv('NEWS_API_URL_BASE') or 'https://newsapi.org/v2/everything'
         self.DEFAULT_LANGUAGE = language
@@ -55,14 +57,13 @@ class NewsAPI(Extractor):
     # def reduce_dataset(self, dataset):
     #     return dataset
 
-
     # Gets a list of news
     def get_dataset(self):
-        today = date.today()
-        #to_date = today.strftime('%Y-%m-%d')
-        to_date = '2022-09-29'
+        # today = date.today()
+        # to_date = today.strftime('%Y-%m-%d')
+        to_date = '2022-10-02'
+        from_date = '2022-09-05'
         # Is Monday?
-        from_date = '2022-09-01'
         # if today.isoweekday() == 1:
         #     # from_date = (today - timedelta(days=30)).strftime('%Y-%m-%d')
         #     from_date = (today - timedelta(days=2)).strftime('%Y-%m-%d')
@@ -125,17 +126,23 @@ class NewsAPI(Extractor):
         filtered_dataset = []
         inserted_urls = set()
         for art in dataset:
-            url = art['url'] if len(art['entity']) == 0 else art['entity'][0] + art['url']
-            if url not in inserted_urls:
+            # url = art['url'] if len(art['entity']) == 0 else art['entity'][0] + art['url']
+            if art['url'] not in inserted_urls:
                 filtered_dataset.append(art)
-                inserted_urls.add(url)
+                inserted_urls.add(art['url'])
+            elif art['entity']:
+                entity = art['entity'][0]
+
+                for i in range(len(filtered_dataset)):
+                    if art['url'] == filtered_dataset[i]['url'] and entity not in filtered_dataset[i]['entity']:
+                        filtered_dataset[i]['entity'].append(entity)
+                        break
 
         # Remove the articles already stored on the database from the dataset
         print('dataset size: ', len(filtered_dataset))
         return filtered_dataset
 
     ##################################
-
 
     def get_domains(self, language):
         result = ''
@@ -146,9 +153,8 @@ class NewsAPI(Extractor):
                 result = s
             else:
                 result = result + ',' + s
-        #print('get_domains(', language, ") ->", result)
+        # print('get_domains(', language, ") ->", result)
         return result
-
 
     def get_exclude_domains(self, language):
         result = ''
@@ -159,9 +165,8 @@ class NewsAPI(Extractor):
                 result = s
             else:
                 result = result + ',' + s
-        #print('get_domains(', language, ") ->", result)
+        # print('get_domains(', language, ") ->", result)
         return result
-
 
     # Create Article
     def _create_article(self, art, language, entity):
@@ -185,7 +190,6 @@ class NewsAPI(Extractor):
         article['tags'] = dict()
         article['content'] = 'N/A'
         article['published_at'] = dt_utc
-        # article['entity'] = [entity] if entity != "" else []
         article['entity'] = [entity.lower()] if entity != "" else []
 
         return article
