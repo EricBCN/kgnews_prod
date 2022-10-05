@@ -101,7 +101,7 @@ def filter_tokens(records, limit):  # 为何不放在查询语句里？
     return new_records
 
 
-## ___________ CLASS DEFINITION ___________________
+# ___________ CLASS DEFINITION ___________________
 class N4jConnector():
 
     # 用url、user、password连接到neo4j，同时，打印目前所有用的英语新闻的条数
@@ -175,6 +175,7 @@ class N4jConnector():
                  "ORDER BY toFloat(sentiment) ASC, n.ODSweight DESC LIMIT 1"
 
         record = session.run(query).single()
+        print(query)
         if not record:
             print('error with query:', query)
 

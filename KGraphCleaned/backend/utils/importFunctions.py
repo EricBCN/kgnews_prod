@@ -1,7 +1,11 @@
 import datetime
 import os
-import sys
+from boilerpy3 import extractors
+from PyPDF2 import PdfFileReader
 
+
+# For Ubuntu Server
+import sys
 path = os.path.abspath(os.path.dirname(__file__))
 projectPath = os.path.split(path)[0]
 projectPath = os.path.split(projectPath)[0]
@@ -10,11 +14,18 @@ sys.path.append(os.path.join(projectPath, "newsapi"))
 sys.path.append(os.path.join(projectPath, "graphCreator"))
 
 import newsapi.utils.mongokit as mongokit
-from graphCreator.graphCreator import calcula
-from graphCreator.mongo import get_article_by_id
 from newsapi.utils.httpSessionWithTimeout import *
-from boilerpy3 import extractors
-from PyPDF2 import PdfFileReader
+from newsapi.utils.tools import *
+from graphCreator import calcula
+from mongo import get_article_by_id
+
+
+# For Windows Local Test
+# from graphCreator.graphCreator import calcula
+# from graphCreator.mongo import get_article_by_id
+# import newsapi.utils.mongokit as mongokit
+# from newsapi.utils.httpSessionWithTimeout import *
+# from newsapi.utils.tools import *
 
 
 def _create_article(url, title, language, content, source_type):
@@ -33,8 +44,15 @@ def _create_article(url, title, language, content, source_type):
     article['source_type'] = source_type
     article['tags'] = dict()
     article['content'] = content
-    article['entity'] = []
     article['published_at'] = dt_utc
+
+    article['entity'] = []
+    entities = get_entities(language)
+
+    for ent in entities:
+        if ent.lower() in content.lower() or ent.lower() in title.lower():
+            article['entity'].append(ent.lower())
+
     return article
 
 
@@ -130,6 +148,7 @@ def import_document(flag, url, title, language, content, source_type):
             "source": article["source"],
             "title": "" if article["title"] is None else article["title"].replace('"', '').replace("'", ''),
             "lang": article["language"],
+            "entity": article["entity"],
             "content": content
         }
 
