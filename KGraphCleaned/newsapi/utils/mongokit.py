@@ -1,9 +1,10 @@
 from mongokit_ng.connection import Connection
 
-# from models.article_model import Article
-from ..models.article_model import Article
-# from logger import logger
-from ..logger import logger
+from models.article_model import Article
+from logger import logger
+
+# from ..models.article_model import Article
+# from ..logger import logger
 
 __all__ = [
     'connection',
@@ -26,8 +27,8 @@ CONSTANTS = {
     # 'HOST': '172.31.12.215',
     'HOST': '127.0.0.1',
     'PORT': 27017,
-    # 'USERNAME': 'root',
-    # 'PASSWORD': '$$52$verb$REALIZE$market$25$$',
+    'USERNAME': 'root',
+    'PASSWORD': '$$52$verb$REALIZE$market$25$$',
     'AUTH_MECHANISM': 'SCRAM-SHA-1',
     'DATABASE': 'KGNews',
     'COLLECTION': 'news'
@@ -68,6 +69,8 @@ def update_entity(_id, entity):
 
 def set_entity_empty():
     connection.KGNews.news.update_many(
-        {},
+        {'entity': {'$exists: false'}},
         {'$set': {'entity': []}}
     )
+
+

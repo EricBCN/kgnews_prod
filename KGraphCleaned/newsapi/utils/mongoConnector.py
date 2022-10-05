@@ -25,8 +25,8 @@ PASSWORD = '$$52$verb$REALIZE$market$25$$'
 DATABASE = 'KGNews'
 """
 
-class MongoConnector():
 
+class MongoConnector:
     def __init__(self):
         self.AUTH_MECHANISM = 'SCRAM-SHA-1'
         self.USERNAME = 'root'
