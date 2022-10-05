@@ -1,8 +1,6 @@
 # -*- coding:utf-8 -*-
-# import sys
-#
-# print(sys.path)
 import os.path
+import sys
 
 from flask import Flask, request, send_from_directory
 from flask_restx import Api, Resource
@@ -29,28 +27,16 @@ ODS_ARRAY = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
 DATE_FORMAT_COMPLETE = '%d/%m/%Y %H:%M:%S'
 DATE_FORMAT = '%Y-%m-%d'
 MONGO_FORMAT = '%d/%m/%Y'
-
 CFG_PATH = './config/config.json'
+UPLOAD_FOLDER = "upload"
+ALLOWED_EXTENSIONS = {'pdf'}
 
-topics_limit = None
-news_limit = None
-user = password = None
-# user="neo4j"
-# password="~~86*trust*SORRY*talk*55~~"
-
-# Connectors
-n4j_conn = None
-query_connector = None
 
 # LOGGING CONFIGURATION
 # logging.basicConfig(filename='app.log', filemode='w', format='%(asctime)-15s  %(name)s - %(levelname)s - %(message)s')
 logging.basicConfig(format='%(asctime)-15s  %(name)s - %(levelname)s - %(message)s')
 logging.basicConfig(level=logging.DEBUG)
-
 logger = logging.getLogger('apiLogger')
-
-UPLOAD_FOLDER = "upload" #os.path.join(os.getcwd(), 'uploads')
-ALLOWED_EXTENSIONS = {'pdf'}
 
 flask_app = Flask(__name__)
 flask_app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -84,13 +70,15 @@ class MainClass(Resource):
     @api.doc(params={'url': {'description': 'url of news', 'type': 'string', 'required': True}})
     def post(self):
         try:
-            url = request.form['url']
-            content, title, flag = get_content_from_url(url)
-            result = import_document(flag, url, title, "en", content, "url")
+            article_url = request.form['url']   # For dashboard webapp
+            # article_url = request.args.get('url') # For backend test
+
+            content, title, flag = get_content_from_url(article_url)
+            result = import_document(flag, article_url, title, "en", content, "url")
 
             return result
         except Exception as error:
-            return {"result": str(error)}
+            return {"result": "Error: " + str(error)}
 
 
 # @api.doc(params={'file': {'description': 'pdf file', 'type': 'file', 'required': True}})
@@ -108,33 +96,42 @@ class MainClass(Resource):
 
     def post(self):
         try:
+            print("Start to upload file")
+
             if 'file' not in request.files:
-                return {"result": "Fail to get the file"}
+                print("Fail to get the file")
+                return {"result": "Error: Fail to get the file"}
 
-            file = request.files['file']
+            file_upload = request.files['file']
 
-            if file.name == "":
-                return {"result": "No selected file"}
+            if file_upload.name == "":
+                print("Error: There is no selected file.")
+                return {"result": "Error: There is no selected file."}
 
-            if file and '.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS:
+            if file_upload and '.' in file_upload.filename and file_upload.filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS:
                 # filename = secure_filename(file.filename)
-                filename = file.filename
+                filename = file_upload.filename
                 filepath = os.path.join(sys.path[0], flask_app.config['UPLOAD_FOLDER'], filename)
 
                 if os.path.exists(filepath):
+                    print("Error: This file has already existed in the database.")
                     return {"result": "Error: This file has already existed in the database."}
 
-                file.save(filepath)
+                print("Start to save the file.")
+                file_upload.save(filepath)
+                print("The file has been saved.")
 
+                print("Start to analyze the file.")
                 content, title, flag = get_content_from_pdf(filepath)
                 result = import_document(flag, filename, title, "en", content, "pdf")
                 # delete_file(filepath)
+                print(result)
 
                 return result
             else:
                 return {"result": "Error: This file is not a PDF file. Please choose another one."}
         except Exception as error:
-            return {"result": str(error)}
+            return {"result": "Error: " + str(error)}
 
 
 # 查询某一时间段内sentiment最positive的ODS新闻
@@ -429,7 +426,7 @@ if __name__ == '__main__':
     logger.info('\nApi logging started!')
 
     user = CONFIG['neo4j']['user']
-    url = CONFIG['neo4j']['url']
+    _url = CONFIG['neo4j']['url']
     password = CONFIG['neo4j']['password']
     topics_limit = CONFIG['topics_limit']
     news_limit = CONFIG['news_limit']
@@ -439,8 +436,8 @@ if __name__ == '__main__':
 
     # Connectors
 
-    n4j_conn = N4jConnector(url, user=user, password=password)
-    query_connector = QueryConnector(url, user=user, password=password)
+    n4j_conn = N4jConnector(_url, user=user, password=password)
+    query_connector = QueryConnector(_url, user=user, password=password)
 
     # 修改 query_connector = CdqaConnector(user, password, url=url)
 
