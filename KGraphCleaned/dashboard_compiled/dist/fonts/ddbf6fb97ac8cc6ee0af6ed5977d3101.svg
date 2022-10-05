@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="22px" height="22px" viewBox="0 0 22 22" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 55.2 (78181) - https://sketchapp.com -->
+    <title>Actions/Search</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <path d="M15.2853612,17.2853612 C13.8012899,18.3638825 11.9749315,19 10,19 C5.02943725,19 1,14.9705627 1,10 C1,5.02943725 5.02943725,1 10,1 C14.9705627,1 19,5.02943725 19,10 C19,11.9749315 18.3638825,13.8012899 17.2853612,15.2853612 L23,21 L21,23 L15.2853612,17.2853612 Z M16,10 C16,6.6862915 13.3137085,4 10,4 L10,6 C12.209139,6 14,7.790861 14,10 L16,10 Z" id="path-1"></path>
+    </defs>
+    <g id="Symbols" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Parts/-Navigation" transform="translate(-951.000000, -23.000000)">
+            <g id="Group-2" transform="translate(762.000000, 22.000000)">
+                <g id="Actions/Search" transform="translate(188.000000, 0.000000)">
+                    <polygon id="Bounding-Box" points="0 0 24 0 24 24 0 24"></polygon>
+                    <mask id="mask-2" fill="white">
+                        <use xlink:href="#path-1"></use>
+                    </mask>
+                    <use id="Mask" fill="#FFFFFF" fill-rule="evenodd" xlink:href="#path-1"></use>
+                    <g id="Primary/Medium-Blue/Medium-Blue" mask="url(#mask-2)" fill="#FFFFFF" fill-rule="evenodd">
+                        <rect id="Rectangle" x="0" y="0" width="24" height="24"></rect>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>
