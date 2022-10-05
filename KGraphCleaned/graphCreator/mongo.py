@@ -1,10 +1,11 @@
 from pymongo import MongoClient
+# ip = '192.168.75.134'
 ip = '127.0.0.1'
 port = 27017
-# username = 'root'
-# password = '$$52$verb$REALIZE$market$25$$'
-username = ''
-password = ''
+username = 'root'
+password = '$$52$verb$REALIZE$market$25$$'
+# username = ''
+# password = ''
 client = MongoClient(ip, username=username, password=password, port=port)
 
 
@@ -18,7 +19,7 @@ def get_unprocessed_id(lang):
     return client.KGNews.ids.find({"language": lang})
 
 
-def get_unprocessed_articles(lang):
+def get_unprocessed_articles_by_ids(lang):
     articles_collection = client.KGNews.news
     ids = get_unprocessed_id(lang)
     articles = []
@@ -27,6 +28,22 @@ def get_unprocessed_articles(lang):
         arts = articles_collection.find({"_id": info["_id"]})
         for art in arts:
             articles.append(art)
+
+    return articles
+
+
+def get_entity_articles(lang):
+    articles_collection = client.KGNews.news
+    arts = articles_collection.find({"language": lang, "entity": {"$ne": []}})
+    articles = [art for art in arts]
+
+    return articles
+
+
+def get_no_entity_articles(lang):
+    articles_collection = client.KGNews.news
+    arts = articles_collection.find({"language": lang, "entity": {"$eq": []}})
+    articles = [art for art in arts]
 
     return articles
 
@@ -59,7 +76,7 @@ def delete_unprocessed_id(_id, lang):
 
 
 if __name__ == "__main__":
-    data = get_unprocessed_articles("en")
+    data = get_unprocessed_articles_by_ids("en")
     print(data)
 
 

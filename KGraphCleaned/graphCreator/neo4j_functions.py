@@ -1,17 +1,12 @@
-# Funciones Neo4J
-import neo4j
 from neo4j import GraphDatabase
 import mongo
-from multiprocessing import Pool
-import sys
+# from . import mongo   # For backend Local Test
 
-# url = "bolt://192.168.1.95:7687"
-url = "bolt://127.0.0.1:7687"
-user = "neo4j"
-password = "~~86*trust*SORRY*talk*55~~"
-# password = "neo4j"
-
-driver = GraphDatabase.driver(url, auth=(user, password))
+# url_neo4j = "bolt://192.168.75.134:7687"
+url_neo4j = "bolt://127.0.0.1:7687"
+user_neo4j = "neo4j"
+password_neo4j = "~~86*trust*SORRY*talk*55~~"
+driver = GraphDatabase.driver(url_neo4j, auth=(user_neo4j, password_neo4j))
 
 
 def crea_ods_corpus(id_ods, name_ods, lang):
@@ -232,7 +227,8 @@ def process_quotation_mark(text):
 
 def add_news(text, sentiment, _url, _id, date, source, title, image_url, lang, entity):
     session = driver.session()
-    command = "MATCH (ne:News_{0} {{text: '{1}'}}) RETURN ne.text".format(lang, text)
+    _url = process_quotation_mark(_url)
+    command = "MATCH (ne:News_{0} {{url: {1}}}) RETURN ne.text".format(lang, _url)
     result = session.run(command)
 
     if result.single() is None:
@@ -240,11 +236,10 @@ def add_news(text, sentiment, _url, _id, date, source, title, image_url, lang, e
 
         text = process_quotation_mark(text)
         sentiment = process_quotation_mark(sentiment)
-        _url = process_quotation_mark(_url)
         image_url = process_quotation_mark(image_url)
         source = process_quotation_mark(source)
         title = process_quotation_mark(title)
-        entity = [process_quotation_mark(ent) for ent in entity]
+        entity = [ent.replace("'", "\\'").lower() for ent in entity]
 
         command = "CREATE (n:News_{0} {{text: {1}, sentiment: {2}, url: {3}, image_url: {4}, id: '{5}', " \
                   "date: '{6}', source: {7}, title: {8}, entity: {9}, covid: 0, odsID: 0}})".format(lang, text, sentiment, _url,
@@ -252,23 +247,26 @@ def add_news(text, sentiment, _url, _id, date, source, title, image_url, lang, e
                                                                                            title, entity)
         tx.run(command)
         tx.commit()
+        print(command)
+
     session.close()
 
 
-def add_news_sentence_relation(text, sentence, date, lang):
-    # try:
+def add_news_sentence_relation(_url, sentence, date, lang):
     session = driver.session()
     tx = session.begin_transaction()
 
-    text = process_quotation_mark(text)
+    # print("url: " + _url)
+    _url = process_quotation_mark(_url)
     sentence = process_quotation_mark(sentence)
     date = process_quotation_mark(date)
 
-    command = "MATCH (ne:News_{0} {{text: {1}}}) " \
+    command = "MATCH (ne:News_{0} {{url: {1}}}) " \
               "MATCH (se:Sentence_{0} {{text: {2}}}) " \
-              "CREATE (se)-[:NEWS_SENTENCE_{0} {{date: {3}}}]->(ne)".format(lang, text, sentence, date)
+              "CREATE (se)-[:NEWS_SENTENCE_{0} {{date: {3}}}]->(ne)".format(lang, _url, sentence, date)
     tx.run(command)
     tx.commit()
+
     session.close()
 
 
@@ -279,10 +277,11 @@ def add_token_sentence_relation(concept, sentence, entity_type, date, lang):
 
     concept = process_quotation_mark(concept)
     sentence = process_quotation_mark(sentence)
+    entity_type = process_quotation_mark(entity_type)
 
     command = "MATCH (en:Token_{0} {{concept: {1}}}) " \
               "MATCH (se:Sentence_{0} {{text: {2}}}) " \
-              "CREATE (en)-[:TOKEN_BELONGS_TO_{0} {{entity_type: '{3}', date: '{4}'}}]->(se)".format(lang, concept,
+              "CREATE (en)-[:TOKEN_BELONGS_TO_{0} {{entity_type: {3}, date: '{4}'}}]->(se)".format(lang, concept,
                                                                                                      sentence,
                                                                                                      entity_type, date)
     tx.run(command)
@@ -290,38 +289,24 @@ def add_token_sentence_relation(concept, sentence, entity_type, date, lang):
     session.close()
 
 
-# def add_token_sentence_relation(text, sentence, tag, date, lang):
-#     # try:
-#     session = driver.session()
-#     tx = session.begin_transaction()
-#     command = "MATCH (to:Token_{0} {{text: '{1}'}}) " \
-#               "MATCH (se:Sentence_{0} {{text: '{2}'}}) " \
-#               "CREATE (to)-[:TOKEN_BELONGS_TO_{0} {{semantics: '{3}', date: '{4}'}}]->(se)".format(lang, text, sentence,
-#                                                                                                    tag, date)
-#     tx.run(command)
-#     tx.commit()
-#     session.close()
-
-
-def inserta_relacion_News_ODS(news, pesos, date, maxODS, maxValor, esODS, lang):
+def inserta_relacion_News_ODS(_url, pesos, date, maxODS, maxValor, esODS, lang):
     # try:
     session = driver.session()
-    news = process_quotation_mark(news)
-
+    _url = process_quotation_mark(_url)
     i = 1
     for peso in pesos:
         tx = session.begin_transaction()
 
-        command = "MATCH (ne:News_{0} {{text: {1}}}) MATCH (od:ODS_{0} {{id: {2}}}) " \
-                  "CREATE (od)-[:NEWS_ODS_{0} {{peso: {3}, date: '{4}'}}]->(ne)".format(lang, news, str(i),
+        command = "MATCH (ne:News_{0} {{url: {1}}}) MATCH (od:ODS_{0} {{id: {2}}}) " \
+                  "CREATE (od)-[:NEWS_ODS_{0} {{peso: {3}, date: '{4}'}}]->(ne)".format(lang, _url, str(i),
                                                                                         str(peso), date)
         tx.run(command)
         i += 1
         tx.commit()
 
     tx = session.begin_transaction()
-    command = "MATCH (ne:News_{0} {{text: {1}}}) " \
-              "SET ne.odsID = {2}, ne.ODSweight = {3}, ne.isitODS = {4}".format(lang, news, maxODS, maxValor, esODS)
+    command = "MATCH (ne:News_{0} {{url: {1}}}) " \
+              "SET ne.odsID = {2}, ne.ODSweight = {3}, ne.isitODS = {4}".format(lang, _url, maxODS, maxValor, esODS)
     tx.run(command)
     tx.commit()
 
@@ -340,7 +325,7 @@ def last_id(lang):
 
 def id_in_graph(lang, id):
     session = driver.session()
-    command = "MATCH (n:News_{0}) WHERE n.id = '{1}' RETURN n".format(lang, str(id))
+    command = "MATCH (n:News_{0}) WHERE n.id = '{1}' RETURN n".format(lang, int(id))
     result = session.run(command)
 
     if result.single() is None:
@@ -362,20 +347,52 @@ def get_unprocessed_articles_in_graph(lang):
     return articles_unprocessed
 
 
-def actualiza_covid(news, lang):
+def get_unprocessed_entity_articles_in_graph(lang):
+    arts = mongo.get_entity_articles(lang)
+    articles_unprocessed = []
+
+    count = 0
+    for art in arts:
+        if id_in_graph(lang, art["_id"]) is False:
+            articles_unprocessed.append(art)
+        count += 1
+
+    print("Get {0} articles with entity.".format(count))
+    print("Get {0} articles with entity not in the graph".format(len(articles_unprocessed)))
+
+    return articles_unprocessed
+
+
+def get_unprocessed_no_entity_articles_in_graph(lang):
+    arts = mongo.get_no_entity_articles(lang)
+    articles_unprocessed = []
+
+    count = 0
+    for art in arts:
+        if id_in_graph(lang, art["_id"]) is False:
+            articles_unprocessed.append(art)
+        count += 1
+
+    print("Get {0} articles with no entity.".format(count))
+    print("Get {0} articles with entity not in the graph".format(len(articles_unprocessed)))
+
+    return articles_unprocessed
+
+
+def actualiza_covid(_url, lang):
     session = driver.session()
-    news = process_quotation_mark(news)
+    _url = process_quotation_mark(_url)
 
     command = "MATCH (n:News_{0})-[r]-(s:Sentence_{0})-[]-(t:Token_{0}) " \
-              "WHERE t.text in ['covid', 'coronavirus', 'pandemic', 'covid-19', 'covid 19'] and n.text = {1} " \
-              "RETURN distinct n".format(lang, news)
+              "WHERE t.text in ['covid', 'coronavirus', 'pandemic', 'covid-19', 'covid 19'] and n.url = {1} " \
+              "RETURN distinct n".format(lang, _url)
     result = session.run(command)
 
     if result.single() is not None:
-        print("La noticia es sobre covid. Texto : " + news)
+        print("La noticia es sobre covid. URL : " + _url)
 
         tx = session.begin_transaction()
-        command = "MATCH (ne:News_{0} {{text: {1}}}) SET ne.covid = 1".format(lang, news)
+        command = "MATCH (ne:News_{0} {{url: {1}}}) SET ne.covid = 1".format(lang, _url)
         tx.run(command)
         tx.commit()
 
@@ -387,6 +404,7 @@ def delete_news(command):
     tx = session.begin_transaction()
     tx.run(command)
     tx.commit()
+    session.close()
 
 
 def delete_isolated_nodes():
@@ -394,6 +412,7 @@ def delete_isolated_nodes():
     tx = session.begin_transaction()
     tx.run("MATCH (n) WHERE NOT (n)--() delete n")
     tx.commit()
+    session.close()
 
 
 def update_entity(lang):
@@ -409,6 +428,8 @@ def update_entity(lang):
         tx = session.begin_transaction()
         tx.run(command)
         tx.commit()
+
+    session.close()
 
 
 if __name__ == "__main__":

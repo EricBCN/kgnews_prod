@@ -1,4 +1,3 @@
-from neo4j_functions import last_id
 from graphCreator import calcula
 from mongo import *
 from neo4j_functions import *
@@ -24,8 +23,11 @@ def launch():
     # else:
     #     articulos = get_articles(int(last_id(lang)[0]), lang)
 
-    # articles = get_unprocessed_articles(lang)
-    articles = get_unprocessed_articles_in_graph(lang)
+    articles = get_articles(-1, "en")
+    # articles = get_unprocessed_articles_by_ids(lang)  # 所有id在mongodb的ids集合中的文章
+    # articles = get_unprocessed_articles_in_graph(lang)    # 所有不在graph中的文章
+    # articles = get_unprocessed_no_entity_articles_in_graph(lang)    # 所有不在graph中且entity为空的文章
+    # articles = get_unprocessed_entity_articles_in_graph(lang)   # 只挑有entity的文章
     print("Get {0} unprocessed articles.".format(len(articles)))
 
     for post in articles:
@@ -38,23 +40,25 @@ def launch():
         datos.append({
             "url": post["url"],
             "fila": post["_id"],
-            "_id": post["_id"],
+            "_id": int(post["_id"]),
             "date": date.strftime("%Y-%m-%dT%H:%M:%S"),
             "source": post["source"],
             "title": title.replace('"', '').replace("'", ''),
-            "lang": post["language"]
+            "lang": post["language"],
+            "entity": post["entity"]
         })
 
     print('Get {0} articles.'.format(len(datos)))
 
-    # for dato in datos:
-    #     calcula(dato)
+    for dato in datos:
+        result = calcula(dato)
+        print(result)
 
-    p = Pool(6)
-    try:
-        p.map(calcula, datos)
-    except TypeError:
-        print(str(sys.exc_info()))
+    # p = Pool(6)
+    # try:
+    #     p.map(calcula, datos)
+    # except TypeError:
+    #     print(str(sys.exc_info()))
 
     # end
 

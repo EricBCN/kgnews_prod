@@ -1,14 +1,20 @@
 # Función Multiproceso
-from neo4j_functions import *  # id_in_graph, crea_ods, add_News, add_sentence, add_token
 from spacy.lang.es.stop_words import STOP_WORDS
 import spacy
-from httpSessionWithTimeout import HttpSessionWithTimeout, HEADERS
 from boilerpy3 import extractors
 from tqdm import tqdm
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from nltk.corpus import wordnet
 from newspaper import Article
+
+from neo4j_functions import *  # id_in_graph, crea_ods, add_News, add_sentence, add_token
 from mongo import *
+from httpSessionWithTimeout import HttpSessionWithTimeout, HEADERS
+
+# from .httpSessionWithTimeout import HttpSessionWithTimeout, HEADERS # For backend local test
+# from .neo4j_functions import * # For backend local test
+# from .mongo import * # For backend local test
+
 
 sid = SentimentIntensityAnalyzer()
 extractor = extractors.ArticleExtractor()
@@ -17,9 +23,9 @@ valid_tags = ["ADJ", "ADP", "AUX", "CONJ", "NOUN", "NUM", "PROPN", "VERB"]
 
 
 def calcula(datos):
-    url = datos["url"]
+    _url = datos["url"]
     lang = datos["lang"]
-    _id = datos["_id"]
+    _id = int(datos["_id"])
     date = datos["date"]
     source = datos["source"]
     title = datos["title"].replace("\\", " ")
@@ -31,6 +37,8 @@ def calcula(datos):
 
     # print(_id)
     # print(myid)
+    if _id == 165:
+        print(entity)
 
     if id_in_graph(lang, _id):
         print("Ya está")
@@ -40,25 +48,26 @@ def calcula(datos):
     ODS = [0] * 18
     crea_ods(myid, lang)
 
-    print("1. Extraemos texto de url " + url)
+    print("1. Extraemos texto de url " + _url)
     try:
         if "content" in datos.keys():
             texto_extraido = datos["content"].replace("\'", "").replace("\\", "")
-            url = url.replace("\\", "\\\\")
+            _url = _url.replace("\\", "\\\\")
             article_url = ""
         else:
             session = HttpSessionWithTimeout()
             session.headers.update(HEADERS)
-            resp = session.get(url)
+            resp = session.get(_url)
             texto_extraido = extractor.get_content(resp.text).replace("\'", "").replace("\\", "")
 
-            article = Article(url)
+            article = Article(_url)
             article.download()
             article.parse()
             article_url = article.top_image
     except Exception as error:
-        print("Error. No puedo leer esa URL. Continúo." + url)
+        print("Error. No puedo leer esa URL. Continúo." + _url)
         borra_articulo(myid, lang)
+        delete_unprocessed_id(_id, lang)
         return "Error: Fail to read the article.\n" + str(error)
     else:
         # Calculamos el sentimiento e insertamos la noticia
@@ -72,7 +81,7 @@ def calcula(datos):
 
         ss = sid.polarity_scores(texto_extraido)
 
-        print("2. Insertamos en grafo. " + url)
+        print("2. Insertamos en grafo. " + _url)
         # Seleccionamos idioma en función de lang
         if lang == "es":
             nlp = spacy.load("es_core_news_sm")
@@ -92,15 +101,17 @@ def calcula(datos):
         sostenibilidad = [0] * 18
         frase_anterior = 0
 
+        # print("Start: " + _url)
         if palabras < 2000:
-            add_news(texto_extraido[:100], str(ss["compound"]), url, _id, date, source, title,
+            add_news(texto_extraido[:100], str(ss["compound"]), _url, _id, date, source, title,
                      article_url, lang, entity)
             with tqdm(total=int(palabras)) as pbar:
                 for texto in frases.sents:
                     frase = texto.text.replace("\n", "")
                     ss = sid.polarity_scores(frase)
                     frase_anterior2 = add_sentence(frase, str(ss["compound"]), frase_anterior, lang)
-                    add_news_sentence_relation(texto_extraido[:100], frase, date, lang)
+                    # print("Insert relation (url): " + _url)
+                    add_news_sentence_relation(_url, frase, date, lang)
                     if not frase_anterior2:
                         frase_anterior = 0
                     else:
@@ -154,12 +165,19 @@ def calcula(datos):
             if maxValor > 0.55:
                 is_ods = 1
 
-            inserta_relacion_News_ODS(texto_extraido[:100], ODS2, date, maxODS, maxValor, is_ods, lang)
-            actualiza_covid(texto_extraido[:100], lang)
+            inserta_relacion_News_ODS(_url, ODS2, date, maxODS, maxValor, is_ods, lang)
+            actualiza_covid(_url, lang)
         else:
+            borra_articulo(myid, lang)
+            delete_unprocessed_id(_id, lang)
             return "Error: The article is too long (more than 2000 words)."
 
         borra_articulo(myid, lang)
         delete_unprocessed_id(_id, lang)
 
-        return "The article has been created correctly in the database!"
+        message = "The article has been created correctly in the database!"
+
+        if is_ods == 0:
+            message += " But the article is not a SDG news."
+
+        return message
