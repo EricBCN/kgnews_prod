@@ -1,9 +1,10 @@
 {
   "neo4j": {
-    "url": "bolt://192.168.75.132:7687",
+    "url": "bolt://192.168.75.134:7687",
     "user": "neo4j",
     "password": "~~86*trust*SORRY*talk*55~~"
   },
   "topics_limit": 20,
-  "news_limit": 20
+  "main_news_limit": 20,
+  "news_limit": -1
 }
