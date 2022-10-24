@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="20px" height="20px" viewBox="0 0 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 55.2 (78181) - https://sketchapp.com -->
+    <title>Validations/seguridad OK</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <path d="M16.4547264,1.39788355 L16.456229,6.19052847 C16.456229,15.7718489 8.58585859,16.456229 8.58585859,16.456229 C8.58585859,16.456229 0.715488215,15.7718489 0.715488215,6.19052847 L0.71706229,1.39788355 C0.717205387,1.02099546 1.03166246,0.715488215 1.43441077,0.715488215 L15.7374495,0.715488215 C16.1334722,0.715488215 16.4546549,1.02558081 16.4547264,1.39788355 Z M5.46464646,8.20912539 L7.81266171,10.4745455 L12.2579798,5.92446816 L11.3500949,5.12121212 L7.81266171,8.77503062 L6.32554963,7.37023214 L5.46464646,8.20912539 Z" id="path-1"></path>
+    </defs>
+    <g id="Validations/seguridad-OK" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <polygon id="Bounding-Box" points="0 0 20 0 20 20 0 20"></polygon>
+        <g id="Security/Scam-Copy-5" transform="translate(1.666667, 1.666667)">
+            <polygon id="Bounding-Box" points="0.833333333 -1.77635684e-14 16.6841492 -1.77635684e-14 16.6841492 15.8508159 0.833333333 15.8508159"></polygon>
+            <mask id="mask-2" fill="white">
+                <use xlink:href="#path-1"></use>
+            </mask>
+            <use id="Mask" fill="#FFFFFF" xlink:href="#path-1"></use>
+            <g id="🎨-Color-Fill" mask="url(#mask-2)" fill="#5CB85C">
+                <rect id="Rectangle" x="0" y="0" width="17.1717172" height="17.1717172"></rect>
+            </g>
+        </g>
+        <polygon id="Path-17" fill="#FFFFFF" points="7.13131313 9.87579206 7.9922163 9.03689881 9.47932837 10.4416973 13.0167615 6.78787879 13.9246465 7.59113482 9.47932837 12.1412121"></polygon>
+    </g>
+</svg>
