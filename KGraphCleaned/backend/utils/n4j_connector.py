@@ -35,6 +35,22 @@ def get_emotion(sentiment):
             return 0
 
 
+def convert_number_array_to_clause(arr):
+    clause = ''
+    for item in arr:
+        clause += str(item) + ","
+
+    return clause[:-1] if clause != '' else ''
+
+
+def convert_string_array_to_clause(arr):
+    clause = ''
+    for item in arr:
+        clause += "'" + item.replace("'", "\\'") + "',"
+
+    return clause[:-1] if clause != '' else ''
+
+
 # 创建查询语句中关于时间段的条件
 def build_datetime_clause(field, date_from=None, date_to=None):
     clause = ''
@@ -55,7 +71,12 @@ def record_to_json(record):
         for key in record.keys():
             if len(json) > 1:
                 json += ', '
-            json += '"' + key + '":"' + str(record[key]) + '"'
+
+            if key == "entity":
+                json += '"' + key + '":' + create_list(record[key])
+            else:
+                json += '"' + key + '":"' + str(record[key]) + '"'
+
             if key == "sentiment":
                 json += ', "emotion":' + str(get_emotion(record[key]))
 
@@ -66,7 +87,10 @@ def record_to_json(record):
 def create_list(output):
     json_output = '['
     for e in output:
-        json_output += str(e[0]) + ' , '
+        json_output += '"' + e + '",'
+
+    if len(output) > 0:
+        json_output = json_output[:-1]
 
     json_output += ']'
     return json_output
@@ -102,7 +126,7 @@ def filter_tokens(records, limit):  # 为何不放在查询语句里？
 
 
 # ___________ CLASS DEFINITION ___________________
-class N4jConnector():
+class N4jConnector:
 
     # 用url、user、password连接到neo4j，同时，打印目前所有用的英语新闻的条数
     def __init__(self, url, user=None, password=None):
@@ -133,19 +157,26 @@ class N4jConnector():
     def get_range_news(self, from_date=None, to_date=None, osd=None, limit=constants.LIMIT_NEWS, entity=""):
         # Build query
         query = MATCH_NEWS + build_datetime_clause("n.date", from_date, to_date)
-        if osd and osd > 0:
-            query += " AND n.odsID = " + str(osd)
-        else:
-            query += " AND not n.odsID = 0"
 
-        if entity and entity != "" and entity.lower() != "all":
+        if osd and len(osd) > 0:
+            query += " AND n.odsID in [" + convert_number_array_to_clause(osd) + "] "
+
+        if entity and len(entity) > 0 and entity[0].lower() != "all":
             # query += " AND toLower(n.entity)='{0}'".format(entity.lower())
-            query += " AND '{0}' in n.entity".format(entity.lower())
-            # query += " AND '{0}' in n.entity".format(entity)
+            query += " AND ("
+
+            for ent in entity:
+                query += "('{0}' in n.entity) OR ".format(ent.replace("'", "\\'"))
+
+            query = query[0:-3] + ") "
 
         query += " RETURN distinct n.id as ID, n.title as title, n.url as url, n.date as date, n.sentiment as sentiment," \
                  " n.source as source, n.ODSweight as peso, n.odsID as ODS_ID, n.entity as entity" \
-                 " ORDER BY n.ODSweight DESC LIMIT " + str(limit)
+                 " ORDER BY n.ODSweight DESC"
+
+        if limit > 0:
+            query += " LIMIT " + str(limit)
+
         print(query)
 
         session = self.neo4j.session()
@@ -160,15 +191,22 @@ class N4jConnector():
         session = self.neo4j.session()
 
         query = MATCH_NEWS + build_datetime_clause("n.date", from_date, to_date)
-        if osd and osd > 0:
-            query += " AND n.odsID = " + str(osd)
-        else:
-            query += " AND not n.odsID = 0"
 
-        if entity and entity != "" and entity.lower() != "all":
+        if osd and len(osd) > 0:
+            query += " AND n.odsID in [" + convert_number_array_to_clause(osd) + "] "
+
+        # if entity and entity != "" and entity.lower() != "all":
+        #     # query += " AND toLower(n.entity)='{0}'".format(entity.lower())
+        #     query += " AND '{0}' in n.entity".format(entity.lower())
+        #     # query += " AND '{0}' in n.entity".format(entity)
+        if entity and len(entity) > 0 and entity[0].lower() != "all":
             # query += " AND toLower(n.entity)='{0}'".format(entity.lower())
-            query += " AND '{0}' in n.entity".format(entity.lower())
-            # query += " AND '{0}' in n.entity".format(entity)
+            query += " AND ("
+
+            for ent in entity:
+                query += "('{0}' in n.entity) OR ".format(ent.replace("'", "\\'"))
+
+            query = query[0:-3] + ") "
 
         query += " RETURN distinct n.id as ID, n.title as title, n.url as url, n.date as date, n.sentiment as sentiment, " \
                  "n.source as source, n.ODSweight as peso, n.odsID as ODS_ID, n.entity as entity " \
@@ -190,15 +228,22 @@ class N4jConnector():
         session = self.neo4j.session()
 
         query = MATCH_NEWS + build_datetime_clause("n.date", from_date, to_date)
-        if osd and osd > 0:
-            query += " AND n.odsID = " + str(osd)
-        else:
-            query += " AND not n.odsID = 0"
 
-        if entity and entity != "" and entity.lower() != "all":
+        if osd and len(osd) > 0:
+            query += " AND n.odsID in [" + convert_number_array_to_clause(osd) + "] "
+
+        # if entity and entity != "" and entity.lower() != "all":
+        #     # query += " AND toLower(n.entity)='{0}'".format(entity.lower())
+        #     query += " AND '{0}' in n.entity".format(entity.lower())
+        #     # query += " AND '{0}' in n.entity".format(entity)
+        if entity and len(entity) > 0 and entity[0].lower() != "all":
             # query += " AND toLower(n.entity)='{0}'".format(entity.lower())
-            query += " AND '{0}' in n.entity".format(entity.lower())
-            # query += " AND '{0}' in n.entity".format(entity)
+            query += " AND ("
+
+            for ent in entity:
+                query += "('{0}' in n.entity) OR ".format(ent.replace("'", "\\'"))
+
+            query = query[0:-3] + ") "
 
         query += " RETURN distinct n.id as ID, n.title as title, n.url as url, n.date as date, n.sentiment as sentiment, " \
                  " n.source as source, n.ODSweight as peso, n.odsID as ODS_ID, n.entity as entity" \
@@ -224,15 +269,25 @@ class N4jConnector():
     # 获取某一时间段内，某个ods或者所有ods新闻的所有Token信息
     # 返回的token信息部分：token文本、token出现的新闻数（不同新闻）、token出现的次数
     # 排序：新闻数（降序）、token出现次数（降序）
-    def get_tokens(self, date_from=None, date_to=None, sdg=None, limit=constants.LIMIT_TOPICS):
+    def get_tokens(self, date_from=None, date_to=None, osd=None, limit=constants.LIMIT_TOPICS, entity=None):
         print('get_tokens. Limit:', limit)
         session = self.neo4j.session()
         match_tokens = "profile MATCH (ne:News_en {isitODS: 1})-[r:NEWS_SENTENCE_en]-(s:Sentence_en)-[r2:TOKEN_BELONGS_TO_en]-(t:Token_en)" \
                        " USING INDEX SEEK ne:News_en(isitODS) "
 
         query = match_tokens + build_datetime_clause("ne.date", date_from, date_to)
-        if sdg and sdg > 0:
-            query += " AND ne.odsID = " + str(sdg)
+
+        if osd and len(osd) > 0:
+            query += " AND ne.odsID in [" + convert_number_array_to_clause(osd) + "] "
+
+        if entity and len(entity) > 0 and entity[0].lower() != "all":
+            # query += " AND toLower(n.entity)='{0}'".format(entity.lower())
+            query += " AND ("
+
+            for ent in entity:
+                query += "('{0}' in ne.entity) OR ".format(ent.replace("'", "\\'"))
+
+            query = query[0:-3] + ") "
 
         query += " return t.text as token, count(distinct ne) as news , count(t) as total" \
                  " ORDER BY count(distinct ne) DESC, count(t) DESC LIMIT " + str(limit + 1)
@@ -250,20 +305,27 @@ class N4jConnector():
 
     ### GRAFICO 1
     # 统计信息：获取某一时间段内，某个ods或者所有ods的News条数，按照ODS编号排序
-    def get_news_per_sdg(self, date_from, date_to, sdg=None, entity=""):
+    def get_news_per_sdg(self, date_from, date_to, osd=None, entity=""):
         print('get_news_per_sdg')
         session = self.neo4j.session()
 
         query = MATCH_NEWS + build_datetime_clause("n.date", date_from, date_to)
-        if sdg and sdg > 0:
-            query += " AND n.odsID = " + str(sdg)
-        else:
-            query += " AND not n.odsID = 0"
 
-        if entity and entity != "" and entity.lower() != "all":
+        if osd and len(osd) > 0:
+            query += " AND n.odsID in [" + convert_number_array_to_clause(osd) + "] "
+
+        # if entity and entity != "" and entity.lower() != "all":
+        #     # query += " AND toLower(n.entity)='{0}'".format(entity.lower())
+        #     query += " AND '{0}' in n.entity".format(entity.lower())
+        #     # query += " AND '{0}' in n.entity".format(entity)
+        if entity and len(entity) > 0 and entity[0].lower() != "all":
             # query += " AND toLower(n.entity)='{0}'".format(entity.lower())
-            query += " AND '{0}' in n.entity".format(entity.lower())
-            # query += " AND '{0}' in n.entity".format(entity)
+            query += " AND ("
+
+            for ent in entity:
+                query += "('{0}' in n.entity) OR ".format(ent.replace("'", "\\'"))
+
+            query = query[0:-3] + ") "
 
         query += " RETURN n.odsID as ods, count(n) as total ORDER BY n.odsID"
 
@@ -274,7 +336,7 @@ class N4jConnector():
 
     ### GRAFICO 2
     # 统计信息：获取某一时间段内，每天有最多News条数的ODS编号、News条数、日期
-    def get_ods_per_day(self, date_from, date_to, sdg=None, entity=""):
+    def get_ods_per_day(self, date_from, date_to, osd=None, entity=""):
         print('get_ods_per_day')
 
         # MATCH (n:News_en {isitODS : 1} ) WHERE datetime(n.date)  >= datetime('2020-05-18T00:00:00')  AND datetime(n.date) < datetime('2020-05-20T00:00:00')
@@ -284,15 +346,21 @@ class N4jConnector():
 
         query = MATCH_NEWS + build_datetime_clause("n.date", date_from, date_to)
 
-        if sdg and sdg > 0:
-            query += " AND n.odsID = " + str(sdg)
-        else:
-            query += " AND not n.odsID = 0"
+        if osd and len(osd) > 0:
+            query += " AND n.odsID in [" + convert_number_array_to_clause(osd) + "] "
 
-        if entity and entity != "" and entity.lower() != "all":
+        # if entity and entity != "" and entity.lower() != "all":
+        #     # query += " AND toLower(n.entity)='{0}'".format(entity.lower())
+        #     query += " AND '{0}' in n.entity".format(entity.lower())
+        #     # query += " AND '{0}' in n.entity".format(entity)
+        if entity and len(entity) > 0 and entity[0].lower() != "all":
             # query += " AND toLower(n.entity)='{0}'".format(entity.lower())
-            query += " AND '{0}' in n.entity".format(entity.lower())
-            # query += " AND '{0}' in n.entity".format(entity)
+            query += " AND ("
+
+            for ent in entity:
+                query += "('{0}' in n.entity) OR ".format(ent.replace("'", "\\'"))
+
+            query = query[0:-3] + ") "
 
         query += " with date(datetime(n.date)) as day, n.odsID as ods, count(n.id) as total return day, ods, total order by day asc, total desc "
 
@@ -312,6 +380,51 @@ class N4jConnector():
 
         return results
 
+    ### GRAFICO
+    # 统计信息：获取某一新闻的所有ODS分数
+    def get_ods_scores(self, news_id):
+        print('get_ods_scores')
+        session = self.neo4j.session()
+
+        query = "MATCH (n:News_en)-[r:NEWS_ODS_en]-(o:ODS_en) " \
+                "WHERE n.id='{0}' " \
+                "RETURN o.id as id, r.peso as peso ORDER BY peso desc".format(news_id)
+
+        results = json.loads(create_list_from_records(session.run(query)))
+
+        session.close()
+        return results
+
+    ### GRAFICO
+    # 统计信息：获取某一时间段内，某个entity或者所有entity的News条数，按照entity排序
+    def get_news_per_entity(self, date_from, date_to, osd=None, entity=None):
+        print('get_news_per_entity')
+        session = self.neo4j.session()
+
+        query = MATCH_NEWS + build_datetime_clause("n.date", date_from, date_to)
+
+        if osd and len(osd) > 0:
+            query += " AND n.odsID in [" + convert_number_array_to_clause(osd) + "] "
+
+        # if entity and entity != "" and entity.lower() != "all":
+        #     # query += " AND toLower(n.entity)='{0}'".format(entity.lower())
+        #     query += " AND '{0}' in n.entity".format(entity.lower())
+        #     # query += " AND '{0}' in n.entity".format(entity)
+        if entity and len(entity) > 0 and entity[0].lower() != "all":
+            # query += " AND toLower(n.entity)='{0}'".format(entity.lower())
+            query += " AND ("
+
+            for ent in entity:
+                query += "('{0}' in n.entity) OR ".format(ent.replace("'", "\\'"))
+
+            query = query[0:-3] + ") "
+
+        query += " RETURN n.entity as entity, count(n) as total ORDER BY n.entity"
+
+        entity_list = create_list_from_records(session.run(query))
+
+        session.close()
+        return entity_list
 
 # if __name__ == '__main__':
 #     CFG_PATH = '../config/config.json'
