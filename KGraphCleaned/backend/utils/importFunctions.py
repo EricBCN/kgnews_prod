@@ -16,12 +16,12 @@ sys.path.append(os.path.join(projectPath, "graphCreator"))
 import newsapi.utils.mongokit as mongokit
 from newsapi.utils.httpSessionWithTimeout import *
 from newsapi.utils.tools import *
-from graphCreator import calcula
+from graphCreator import calculate
 from mongo import get_article_by_id
 
 
 # For Windows Local Test
-# from graphCreator.graphCreator import calcula
+# from graphCreator.graphCreator import calculate
 # from graphCreator.mongo import get_article_by_id
 # import newsapi.utils.mongokit as mongokit
 # from newsapi.utils.httpSessionWithTimeout import *
@@ -152,7 +152,7 @@ def import_document(flag, url, title, language, content, source_type):
             "content": content
         }
 
-        message = calcula(post)
+        message = calculate(post)
         result = {"result": message}
     else:
         result = {"result": content}
