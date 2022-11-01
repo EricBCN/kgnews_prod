@@ -2,10 +2,10 @@ from pymongo import MongoClient
 # ip = '192.168.75.134'
 ip = '127.0.0.1'
 port = 27017
-username = 'root'
-password = '$$52$verb$REALIZE$market$25$$'
-# username = ''
-# password = ''
+# username = 'root'
+# password = '$$52$verb$REALIZE$market$25$$'
+username = ''
+password = ''
 client = MongoClient(ip, username=username, password=password, port=port)
 
 
@@ -76,8 +76,8 @@ def delete_unprocessed_id(_id, lang):
 
 
 if __name__ == "__main__":
-    data = get_unprocessed_articles_by_ids("en")
-    print(data)
+    arts = get_unprocessed_articles_by_ids("en")
+    print(arts)
 
 
 

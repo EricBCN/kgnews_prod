@@ -1,5 +1,6 @@
 from neo4j import GraphDatabase
 import mongo
+
 # from . import mongo   # For backend Local Test
 
 # url_neo4j = "bolt://192.168.75.134:7687"
@@ -32,7 +33,7 @@ def crea_ods(myid, lang):
     session.close()
 
 
-def borra_articulo(myid, lang):
+def delete_article_ods(myid, lang):
     session = driver.session()
     tx = session.begin_transaction()
     command = "MATCH (n:ODS_{0} {{id: '{1}'}}) DETACH DELETE n".format(lang, myid)
@@ -52,40 +53,29 @@ def limpia_grafo(lang):
     borra_huerfanos(lang)
 
 
-# def add_token(text, tag, concept, lang):
-#    neo4j = GraphDatabase.driver(url,auth=(user, password))
-#    l.acquire()
-#    session = neo4j.session()
-#    #try:
-#    result = session.run("MATCH (to:Token" + "_" + lang + " {text: '" + text + "'}) RETURN to.text")
-#    if result.single() == None:
-#        tx = session.begin_transaction()
-#        tx.run("CREATE (to:Token" + "_" + lang + " {text: '" + text + "', tag: '" + tag + "', concept: '" + concept + "'})")
-#        tx.commit()
-#    session.close()
-#    l.release()
-
-
-def inserta_relacion_token_ODS(concept, id_ods, num_token, date, lang):
+def insert_relation_token_ods(token_id, id_ods, num_token, date, lang):
     session = driver.session()
-    command = "MATCH (od:ODS_{0} {{id: '{1}'}})-[r:RELEVANCIA_{0}]->(to:Token_{0} {{concept: '{2}'}}) " \
-              "RETURN r.peso".format(lang, id_ods, concept)
+    command = "MATCH (od:ODS_{0} {{id: '{1}'}})-[r:RELEVANCIA_{0}]->(to:Token_{0}) " \
+              "WHERE ID(to)={2} " \
+              "RETURN r.peso".format(lang, id_ods, token_id)
     result = session.run(command)
     value = result.value()
 
     if not value:
         tx = session.begin_transaction()
-        command = "MATCH (to:Token_{0} {{concept: '{1}'}}) " \
+        command = "MATCH (to:Token_{0}) " \
                   "MATCH (od:ODS_{0} {{id: '{2}'}}) " \
-                  "CREATE (od)-[:RELEVANCIA_{0} {{peso: {3}, date: '{4}'}}]->(to)".format(lang, concept, id_ods,
+                  "WHERE ID(to)={1} " \
+                  "CREATE (od)-[:RELEVANCIA_{0} {{peso: {3}, date: '{4}'}}]->(to)".format(lang, token_id, id_ods,
                                                                                           1 / num_token, date)
         tx.run(command)
         tx.commit()
     else:
         weight = value[0] + 1
         tx = session.begin_transaction()
-        command = "MATCH (od:ODS_{0} {{id: '{1}'}})-[r:RELEVANCIA_{0}]->(to:Token_{0} {{concept: '{2}'}}) " \
-                  "SET r.peso = {3} RETURN r.peso".format(lang, id_ods, concept, str(weight + (1 / num_token)))
+        command = "MATCH (od:ODS_{0} {{id: '{1}'}})-[r:RELEVANCIA_{0}]->(to:Token_{0}) " \
+                  "WHERE ID(to)={2} " \
+                  "SET r.peso = {3} RETURN r.peso".format(lang, id_ods, token_id, str(weight + (1 / num_token)))
         tx.run(command)
         tx.commit()
     session.close()
@@ -139,11 +129,11 @@ def similaridad_pearson(myid, lang):
     return values
 
 
-def peso_de_token(concept, lang):
+def peso_de_token(sentence_id, lang):
     session = driver.session()
-    command = "MATCH (to:Token_{0} {{concept: '{1}'}})-[r:RELEVANCIA_{0}]-(o:ODS_{0}) " \
-              "WHERE o.id IN [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17] " \
-              "RETURN DISTINCT to.text, o.id, r.peso ORDER BY o.id ASC".format(lang, concept)
+    command = "MATCH (to:Token_{0})-[r:RELEVANCIA_{0}]-(o:ODS_{0}) " \
+              "WHERE ID(to)={1} AND o.id IN [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17] " \
+              "RETURN DISTINCT to.text, o.id, r.peso ORDER BY o.id ASC".format(lang, sentence_id)
     result = session.run(command)
 
     # result = session.run("MATCH (o:ODS" + "_" + lang + ")-[r:RELEVANCIA" + "_" + lang + "]->(to:Token" + "_" + lang +
@@ -163,7 +153,7 @@ def borra_huerfanos(lang):
     return values
 
 
-def porcientos(lang):
+def get_ods_all_tokens_weights(lang):
     session = driver.session()
     command = "match (o:ODS_{0})-[r:RELEVANCIA_{0}]-(t:Token_{0}) " \
               "WHERE o.id IN [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17] " \
@@ -176,53 +166,61 @@ def porcientos(lang):
 
 
 # Funciones para insertar las noticias en el grafo
-def add_sentence(text, sentiment, frase_anterior, lang):
+def add_sentence(text, sentiment, previous_sentence, lang):
     session = driver.session()
     text = process_quotation_mark(text)
 
-    command = "MATCH (se:Sentence_{0} {{text: {1}}}) RETURN ID(se)".format(lang, text)
+    command = "CREATE (a:Sentence_{0} {{text: {1}, sentiment: '{2}'}}) RETURN ID(a)".format(lang, text, sentiment)
     result = session.run(command)
-
-    if result.single() is None:
-        # tx = session.begin_transaction()
-        command = "CREATE (a:Sentence_{0} {{text: {1}, sentiment: '{2}'}}) RETURN ID(a)".format(lang, text, sentiment)
-        session.run(command)
-        # tx.commit()
-    session.close()
-
-    session = driver.session()
-    tx2 = session.begin_transaction()
-    command = "MATCH (se1:Sentence_{0} {{text: {1}}}) " \
-              "MATCH (se2:Sentence_{0}) WHERE id(se2)={2} " \
-              "CREATE (se1)-[:PREVIOUS_SENTENCE_{0}]->(se2)".format(lang, text, frase_anterior)
-    tx2.run(command)
-    tx2.commit()
     value = result.value()
     session.close()
 
-    return value
+    sentence_id = -1
+
+    if value:
+        sentence_id = value[0]
+
+        if previous_sentence >= 0:
+            session = driver.session()
+            tx = session.begin_transaction()
+            command = "MATCH (se1:Sentence_{0}) " \
+                      "MATCH (se2:Sentence_{0}) WHERE ID(se1)={1} AND ID(se2)={2} " \
+                      "CREATE (se1)-[:PREVIOUS_SENTENCE_{0}]->(se2)".format(lang, sentence_id, previous_sentence)
+            tx.run(command)
+            tx.commit()
+            session.close()
+
+    return sentence_id
 
 
 def add_token(token, concept, lang):
     session = driver.session()
 
-    command = "MATCH (to:Token_{0} {{concept: '{1}'}}) RETURN to.text".format(lang, concept)
+    command = "MATCH (to:Token_{0} {{concept: '{1}'}}) RETURN ID(to)".format(lang, concept)
     result = session.run(command)
 
-    if result.single() is None:
+    token_id = -1
+    value = result.value()
+
+    if value:
+        token_id = value[0]
+    else:
         tx = session.begin_transaction()
-        command = "CREATE (to:Token_{0} {{text: '{1}', concept: '{2}'}})".format(lang, token, concept)
-        tx.run(command)
+        command = "CREATE (to:Token_{0} {{text: '{1}', concept: '{2}'}}) RETURN ID(to)".format(lang, token, concept)
+        result = tx.run(command)
+
+        if result:
+            token_id = result.value()[0]
+
         tx.commit()
 
     session.close()
 
+    return token_id
+
 
 def process_quotation_mark(text):
-    if "'" in text:
-        text = text.replace("'", "\\'")
-
-    return "'" + text + "'"
+    return "'" + text.replace("'", "\\'") + "'"
 
 
 def add_news(text, sentiment, _url, _id, date, source, title, image_url, lang, entity):
@@ -230,8 +228,12 @@ def add_news(text, sentiment, _url, _id, date, source, title, image_url, lang, e
     _url = process_quotation_mark(_url)
     command = "MATCH (ne:News_{0} {{url: {1}}}) RETURN ne.text".format(lang, _url)
     result = session.run(command)
+    value = result.value()
+    news_id = -1
 
-    if result.single() is None:
+    if value:
+        news_id = value[0]
+    else:
         tx = session.begin_transaction()
 
         text = process_quotation_mark(text)
@@ -242,71 +244,72 @@ def add_news(text, sentiment, _url, _id, date, source, title, image_url, lang, e
         entity = [ent.replace("'", "\\'").lower() for ent in entity]
 
         command = "CREATE (n:News_{0} {{text: {1}, sentiment: {2}, url: {3}, image_url: {4}, id: '{5}', " \
-                  "date: '{6}', source: {7}, title: {8}, entity: {9}, covid: 0, odsID: 0}})".format(lang, text, sentiment, _url,
-                                                                                           image_url, _id, date, source,
-                                                                                           title, entity)
-        tx.run(command)
+                  "date: '{6}', source: {7}, title: {8}, entity: {9}, covid: 0, odsID: 0}}) " \
+                  "RETURN ID(n)".format(lang, text, sentiment, _url, image_url, _id, date, source, title, entity)
+        result = tx.run(command)
+
+        if result:
+            news_id = result.value()[0]
+
         tx.commit()
-        print(command)
+        # print(command)
 
     session.close()
 
+    return news_id
 
-def add_news_sentence_relation(_url, sentence, date, lang):
+
+def add_news_sentence_relation(news_id, sentence_id, date, lang):
     session = driver.session()
     tx = session.begin_transaction()
 
     # print("url: " + _url)
-    _url = process_quotation_mark(_url)
-    sentence = process_quotation_mark(sentence)
     date = process_quotation_mark(date)
 
-    command = "MATCH (ne:News_{0} {{url: {1}}}) " \
-              "MATCH (se:Sentence_{0} {{text: {2}}}) " \
-              "CREATE (se)-[:NEWS_SENTENCE_{0} {{date: {3}}}]->(ne)".format(lang, _url, sentence, date)
+    command = "MATCH (ne:News_{0}) " \
+              "MATCH (se:Sentence_{0}) WHERE ID(ne)={1} AND ID(se)={2} " \
+              "CREATE (se)-[:NEWS_SENTENCE_{0} {{date: {3}}}]->(ne)".format(lang, news_id, sentence_id, date)
     tx.run(command)
     tx.commit()
 
     session.close()
 
 
-def add_token_sentence_relation(concept, sentence, entity_type, date, lang):
+def add_token_sentence_relation(token_id, sentence_id, entity_type, date, lang):
     # try:
     session = driver.session()
     tx = session.begin_transaction()
 
-    concept = process_quotation_mark(concept)
-    sentence = process_quotation_mark(sentence)
     entity_type = process_quotation_mark(entity_type)
 
-    command = "MATCH (en:Token_{0} {{concept: {1}}}) " \
-              "MATCH (se:Sentence_{0} {{text: {2}}}) " \
-              "CREATE (en)-[:TOKEN_BELONGS_TO_{0} {{entity_type: {3}, date: '{4}'}}]->(se)".format(lang, concept,
-                                                                                                     sentence,
-                                                                                                     entity_type, date)
+    command = "MATCH (to:Token_{0}) " \
+              "MATCH (se:Sentence_{0}) WHERE ID(to) = {1} and ID(se) = {2} " \
+              "CREATE (to)-[:TOKEN_BELONGS_TO_{0} {{entity_type: {3}, date: '{4}'}}]->(se)".format(lang, token_id,
+                                                                                                   sentence_id,
+                                                                                                   entity_type, date)
     tx.run(command)
     tx.commit()
     session.close()
 
 
-def inserta_relacion_News_ODS(_url, pesos, date, maxODS, maxValor, esODS, lang):
+def insert_relation_news_ods(news_id, pesos, date, maxODS, maxValor, esODS, lang):
     # try:
     session = driver.session()
-    _url = process_quotation_mark(_url)
+
     i = 1
     for peso in pesos:
         tx = session.begin_transaction()
 
-        command = "MATCH (ne:News_{0} {{url: {1}}}) MATCH (od:ODS_{0} {{id: {2}}}) " \
-                  "CREATE (od)-[:NEWS_ODS_{0} {{peso: {3}, date: '{4}'}}]->(ne)".format(lang, _url, str(i),
+        command = "MATCH (ne:News_{0}) MATCH (od:ODS_{0} {{id: {2}}}) WHERE ID(ne)={1} " \
+                  "CREATE (od)-[:NEWS_ODS_{0} {{peso: {3}, date: '{4}'}}]->(ne)".format(lang, news_id, str(i),
                                                                                         str(peso), date)
         tx.run(command)
         i += 1
         tx.commit()
 
     tx = session.begin_transaction()
-    command = "MATCH (ne:News_{0} {{url: {1}}}) " \
-              "SET ne.odsID = {2}, ne.ODSweight = {3}, ne.isitODS = {4}".format(lang, _url, maxODS, maxValor, esODS)
+    command = "MATCH (ne:News_{0}) WHERE ID(ne)={1} " \
+              "SET ne.odsID = {2}, ne.ODSweight = {3}, ne.isitODS = {4}".format(lang, news_id, maxODS, maxValor, esODS)
     tx.run(command)
     tx.commit()
 
