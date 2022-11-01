@@ -28,7 +28,7 @@ def launch():
     # articles = get_unprocessed_articles_in_graph(lang)    # 所有不在graph中的文章
     # articles = get_unprocessed_no_entity_articles_in_graph(lang)    # 所有不在graph中且entity为空的文章
     # articles = get_unprocessed_entity_articles_in_graph(lang)   # 只挑有entity的文章
-    print("Get {0} unprocessed articles.".format(len(articles)))
+    # print("Get {0} unprocessed articles.".format(len(articles)))
 
     for post in articles:
         if post["title"] is None:
