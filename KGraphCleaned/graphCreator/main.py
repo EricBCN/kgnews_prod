@@ -1,4 +1,4 @@
-from graphCreator import calcula
+from graphCreator import calculate
 from mongo import *
 from neo4j_functions import *
 import schedule
@@ -51,7 +51,7 @@ def launch():
     print('Get {0} articles.'.format(len(datos)))
 
     for dato in datos:
-        result = calcula(dato)
+        result = calculate(dato)
         print(result)
 
     # p = Pool(6)
