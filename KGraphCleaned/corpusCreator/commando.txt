@@ -1,0 +1,12 @@
+1. pip install googletrans==3.1.0a0
+pip install keras tensorflow
+
+#修改pyvenv.cfg中的include-system-site-packages为true
+#pip install https://github.com/aboSamoor/pycld2/zipball/e3ac86ed4d4902e912691c1531d0c5645382a726
+#pip install spacy_cld
+
+#升级spacy
+
+2. 运行createCorpus.py
+
+3. 运行
