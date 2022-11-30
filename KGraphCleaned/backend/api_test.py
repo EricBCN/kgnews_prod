@@ -5,19 +5,13 @@ import sys
 from flask import Flask, request, send_from_directory
 from flask_restx import Api, Resource
 from datetime import timedelta
-import datetime
 import time
 import timeit
-import json
 from flask_cors import CORS
-
-from utils.errors import errors, SchemaValidationError, WrongFormatFields, InternalServerError
+from utils.errors import errors, SchemaValidationError
 from utils.importFunctions import *
 from utils.haystack_connector import QueryConnector
-# 修改 from utils.cdqa_connector import CdqaConnector
-
 from utils.n4j_connector import N4jConnector
-from werkzeug.utils import secure_filename
 
 
 import logging
@@ -38,7 +32,7 @@ logging.basicConfig(format='%(asctime)-15s  %(name)s - %(levelname)s - %(message
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('apiLogger')
 
-flask_app = Flask(__name__)
+flask_app = Flask("__main__")
 flask_app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 api = Api(app=flask_app, errors=errors)
 CORS(flask_app)
@@ -74,7 +68,7 @@ class MainClass(Resource):
             # article_url = request.args.get('url') # For backend test
 
             content, title, flag = get_content_from_url(article_url)
-            result = import_document(flag, article_url, title, "en", content, "url")
+            result = import_document(flag, article_url, title, content, "url")
 
             return result
         except Exception as error:
@@ -108,7 +102,8 @@ class MainClass(Resource):
                 print("Error: There is no selected file.")
                 return {"result": "Error: There is no selected file."}
 
-            if file_upload and '.' in file_upload.filename and file_upload.filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS:
+            if file_upload and '.' in file_upload.filename \
+                    and file_upload.filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS:
                 # filename = secure_filename(file.filename)
                 filename = file_upload.filename
                 filepath = os.path.join(sys.path[0], flask_app.config['UPLOAD_FOLDER'], filename)
@@ -137,7 +132,9 @@ class MainClass(Resource):
 # 查询某一时间段内sentiment最positive的ODS新闻
 @api.doc(params={'date_from': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True},
                  'date_to': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True},
-                 'entity': {'description': 'Entity or Organization', 'type': 'string', 'required': False}})
+                 'entity': {'description': 'Entity or Organization', 'type': 'string', 'required': False},
+                 'lang': {'description': 'News language', 'type': 'string', 'required': True}
+                 })
 @name_space.route("/positive")
 class MainClass(Resource):
     @api.doc(params={'sdg': {'description': 'Specify the number of SDG', 'required': False, 'enum': ODS_ARRAY}})
@@ -145,6 +142,7 @@ class MainClass(Resource):
         date_from = request.args.get('date_from')
         date_to = request.args.get('date_to')
         arg_entity = request.args.get('entity')
+        lang = request.args.get('lang')
 
         if not date_from or not date_to:
             return {"error": "Request is missing required fields", "status": 400}
@@ -165,9 +163,9 @@ class MainClass(Resource):
             from_date = datetime.datetime.strptime(date_from, DATE_FORMAT)
             to_date = datetime.datetime.strptime(date_to, DATE_FORMAT)
             to_date = to_date + timedelta(days=1)
-            news = n4j_conn.get_most_positive(from_date, to_date, sdg, entity)
+            news = n4j_conn.get_most_positive(from_date, to_date, sdg, entity, lang)
             print('result', news)
-            return json.loads(news)
+            return json.loads(news, strict=False)
         except ValueError as err:
             return {"error": "Wrong argument format", "status": 400, "detail": str(err)}
 
@@ -175,7 +173,9 @@ class MainClass(Resource):
 # 查询某一时间段内sentiment最negative的ODS新闻
 @api.doc(params={'date_from': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True},
                  'date_to': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True},
-                 'entity': {'description': 'Entity or Organization', 'type': 'string', 'required': False}})
+                 'entity': {'description': 'Entity or Organization', 'type': 'string', 'required': False},
+                 'lang': {'description': 'News language', 'type': 'string', 'required': True}
+                 })
 @name_space.route("/negative")
 class MainClass(Resource):
     @api.doc(params={'sdg': {'description': 'Specify the number of SDG', 'required': False, 'enum': ODS_ARRAY}})
@@ -183,6 +183,7 @@ class MainClass(Resource):
         date_from = request.args.get('date_from')
         date_to = request.args.get('date_to')
         arg_entity = request.args.get('entity')
+        lang = request.args.get('lang')
 
         if not date_from or not date_to:
             return {"error": "Request is missing required fields", "status": 400}
@@ -204,8 +205,8 @@ class MainClass(Resource):
             from_date = datetime.datetime.strptime(date_from, DATE_FORMAT)
             to_date = datetime.datetime.strptime(date_to, DATE_FORMAT)
             to_date = to_date + timedelta(days=1)
-            news = n4j_conn.get_most_negative(from_date, to_date, sdg, entity)
-            return json.loads(news)
+            news = n4j_conn.get_most_negative(from_date, to_date, sdg, entity, lang)
+            return json.loads(news, strict=False)
         except ValueError as err:
             print(err)
             return {"error": "Wrong argument format", "detail": str(err)}
@@ -214,7 +215,9 @@ class MainClass(Resource):
 # 查询某一时间段内的ODS新闻
 @api.doc(params={'date_from': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True},
                  'date_to': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True},
-                 'entity': {'description': 'Entity or Organization', 'type': 'string', 'required': False}})
+                 'entity': {'description': 'Entity or Organization', 'type': 'string', 'required': False},
+                 'lang': {'description': 'News language', 'type': 'string', 'required': True}
+                 })
 @name_space.route("/")
 class MainClass(Resource):
     @api.doc(params={'sdg': {'description': 'Specify the number of SDG', 'required': False, 'enum': ODS_ARRAY}})
@@ -222,6 +225,7 @@ class MainClass(Resource):
         date_from = request.args.get('date_from')
         date_to = request.args.get('date_to')
         arg_entity = request.args.get('entity')
+        lang = request.args.get('lang')
 
         if not date_from or not date_to:
             return {"error": "Request is missing required fields", "status": 400}
@@ -243,9 +247,9 @@ class MainClass(Resource):
             from_date = datetime.datetime.strptime(date_from, DATE_FORMAT)
             to_date = datetime.datetime.strptime(date_to, DATE_FORMAT)
             to_date = to_date + timedelta(days=1)
-            news = n4j_conn.get_range_news(from_date, to_date, osd=sdg, limit=news_limit, entity=entity)
+            news = n4j_conn.get_range_news(from_date, to_date, osd=sdg, limit=news_limit, entity=entity, lang=lang)
             print(news)
-            return json.loads(news)
+            return json.loads(news, strict=False)
         except ValueError as err:
             return {"error": "Wrong argument format", "status": 400, "detail": str(err)}
 
@@ -253,15 +257,17 @@ class MainClass(Resource):
 # 查询某一时间段内的主要ODS新闻
 @api.doc(params={'date_from': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True},
                  'date_to': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True},
-                 'entity': {'description': 'Entity or Organization', 'type': 'string', 'required': False}})
+                 'entity': {'description': 'Entity or Organization', 'type': 'string', 'required': False},
+                 'lang': {'description': 'News language', 'type': 'string', 'required': True}
+                 })
 @name_space.route("/main")
 class MainClass(Resource):
     @api.doc(params={'sdg': {'description': 'Specify the number of SDG', 'required': False, 'enum': ODS_ARRAY}})
     def get(self):
-        sdg = None
         date_from = request.args.get('date_from')
         date_to = request.args.get('date_to')
         arg_entity = request.args.get('entity')
+        lang = request.args.get('lang')
 
         if not date_from or not date_to:
             return {"error": "Request is missing required fields", "status": 400}
@@ -283,18 +289,20 @@ class MainClass(Resource):
             from_date = datetime.datetime.strptime(date_from, DATE_FORMAT)
             to_date = datetime.datetime.strptime(date_to, DATE_FORMAT)
             to_date = to_date + timedelta(days=1)
-            news = n4j_conn.get_range_news(from_date, to_date, osd=sdg, limit=main_news_limit, entity=entity)
+            news = n4j_conn.get_range_news(from_date, to_date, osd=sdg, limit=main_news_limit, entity=entity, lang=lang)
             print(news)
-            return json.loads(news)
+            return json.loads(news, strict=False)
         except ValueError as err:
             return {"error": "Wrong argument format", "status": 400, "detail": str(err)}
 
 
-#### TOKENS #####
+# TOKENS #
 # 获取某一时间段内，ODS新闻的Token信息
 @api.doc(params={'date_from': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True},
                  'date_to': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'default': None},
-                 'entity': {'description': 'Entity or Organization', 'type': 'string', 'required': False}})
+                 'entity': {'description': 'Entity or Organization', 'type': 'string', 'required': False},
+                 'lang': {'description': 'News language', 'type': 'string', 'required': True}
+                 })
 @ns_tokens.route("/")
 class MainClass(Resource):
     @api.doc(params={'sdg': {'description': 'Specify the number of SDG', 'required': False, 'enum': ODS_ARRAY}})
@@ -306,8 +314,9 @@ class MainClass(Resource):
 
         arg_entity = request.args.get('entity')
         arg_sdg = request.args.get('sdg')
-        sdg = []
+        lang = request.args.get('lang')
 
+        sdg = []
         if arg_sdg:
             sdg = arg_sdg.split(',')
             sdg = [int(v) for v in sdg]
@@ -322,9 +331,9 @@ class MainClass(Resource):
             from_date = datetime.datetime.strptime(date_from, DATE_FORMAT)
             to_date = datetime.datetime.strptime(date_to, DATE_FORMAT)
             to_date = to_date + timedelta(days=1)
-            tokens = n4j_conn.get_tokens(from_date, to_date, sdg, topics_limit, entity)
+            tokens = n4j_conn.get_tokens(from_date, to_date, sdg, topics_limit, entity, lang)
             logger.debug("Tokens result: %s", tokens)
-            return json.loads(tokens)
+            return json.loads(tokens, strict=False)
         except ValueError as err:
             logger.error("Wrong argument format. Detail: %s", str(err))
             return {"error": "Wrong argument format", "status": 400, "detail": str(err)}
@@ -335,7 +344,9 @@ class MainClass(Resource):
 @api.doc(
     params={'date_from': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True, 'default': None},
             'date_to': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True, 'default': None},
-            'entity': {'description': 'Entity or Organization', 'type': 'string', 'required': False}})
+            'entity': {'description': 'Entity or Organization', 'type': 'string', 'required': False},
+            'lang': {'description': 'News language', 'type': 'string', 'required': True}
+            })
 @ns_statistics.route("/news_sdg")
 class MainClass(Resource):
     @api.doc(params={'sdg': {'description': 'Specify the number of SDG', 'required': False, 'enum': ODS_ARRAY}})
@@ -343,6 +354,7 @@ class MainClass(Resource):
         date_from = request.args.get('date_from')
         date_to = request.args.get('date_to')
         arg_entity = request.args.get('entity')
+        lang = request.args.get('lang')
 
         if not date_from or not date_to:
             return {"error": "Request is missing required fields", "status": 400}
@@ -364,9 +376,9 @@ class MainClass(Resource):
             from_date = datetime.datetime.strptime(date_from, DATE_FORMAT)
             to_date = datetime.datetime.strptime(date_to, DATE_FORMAT)
             to_date = to_date + timedelta(days=1)
-            tokens = n4j_conn.get_news_per_sdg(from_date, to_date, sdg, entity)
+            tokens = n4j_conn.get_news_per_sdg(from_date, to_date, sdg, entity, lang)
             print(tokens)
-            return json.loads(tokens)
+            return json.loads(tokens, strict=False)
         except ValueError as err:
             return {"error": "Wrong argument format", "status": 400, "detail": str(err)}
 
@@ -375,7 +387,9 @@ class MainClass(Resource):
 @api.doc(
     params={'date_from': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True, 'default': None},
             'date_to': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True, 'default': None},
-            'entity': {'description': 'Entity or Organization', 'type': 'string', 'required': False}})
+            'entity': {'description': 'Entity or Organization', 'type': 'string', 'required': False},
+            'lang': {'description': 'News language', 'type': 'string', 'required': True}
+            })
 @ns_statistics.route("/news_entity")
 class MainClass(Resource):
     @api.doc(params={'sdg': {'description': 'Specify the number of SDG', 'required': False, 'enum': ODS_ARRAY}})
@@ -383,6 +397,7 @@ class MainClass(Resource):
         date_from = request.args.get('date_from')
         date_to = request.args.get('date_to')
         arg_entity = request.args.get('entity')
+        lang = request.args.get('lang')
 
         if not date_from or not date_to:
             return {"error": "Request is missing required fields", "status": 400}
@@ -403,9 +418,9 @@ class MainClass(Resource):
             from_date = datetime.datetime.strptime(date_from, DATE_FORMAT)
             to_date = datetime.datetime.strptime(date_to, DATE_FORMAT)
             to_date = to_date + timedelta(days=1)
-            tokens = n4j_conn.get_news_per_entity(from_date, to_date, sdg, entity)
+            tokens = n4j_conn.get_news_per_entity(from_date, to_date, sdg, entity, lang)
             print(tokens)
-            return json.loads(tokens)
+            return json.loads(tokens, strict=False)
         except ValueError as err:
             return {"error": "Wrong argument format", "status": 400, "detail": str(err)}
 
@@ -414,7 +429,9 @@ class MainClass(Resource):
 @api.doc(
     params={'date_from': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True, 'default': None},
             'date_to': {'description': 'format: YYYY-MM-DD', 'type': 'string', 'required': True, 'default': None},
-            'entity': {'description': 'Entity or Organization', 'type': 'string', 'required': False}})
+            'entity': {'description': 'Entity or Organization', 'type': 'string', 'required': False},
+            'lang': {'description': 'News language', 'type': 'string', 'required': True}
+            })
 @ns_statistics.route("/ods_day")
 class MainClass(Resource):
     @api.doc(params={'sdg': {'description': 'Specify the number of SDG', 'required': False, 'enum': ODS_ARRAY}})
@@ -422,6 +439,7 @@ class MainClass(Resource):
         date_from = request.args.get('date_from')
         date_to = request.args.get('date_to')
         arg_entity = request.args.get('entity')
+        lang = request.args.get('lang')
 
         if not date_from or not date_to:
             return {"error": "Request is missing required fields", "status": 400}
@@ -442,7 +460,7 @@ class MainClass(Resource):
             from_date = datetime.datetime.strptime(date_from, DATE_FORMAT)
             to_date = datetime.datetime.strptime(date_to, DATE_FORMAT)
             to_date = to_date + timedelta(days=1)
-            odss = n4j_conn.get_ods_per_day(from_date, to_date, sdg, entity)
+            odss = n4j_conn.get_ods_per_day(from_date, to_date, sdg, entity, lang)
             print(odss)
             return odss
         except ValueError as err:
@@ -452,9 +470,11 @@ class MainClass(Resource):
 # 统计信息：获取某个新闻的所有ODS分数
 @ns_statistics.route("/ods_scores")
 class MainClass(Resource):
-    @api.doc(params={'news_id': {'description': 'News ID', 'type': 'string', 'required': True, 'default': None}})
+    @api.doc(params={'news_id': {'description': 'News ID', 'type': 'string', 'required': True, 'default': None},
+                     'lang': {'description': 'News language', 'type': 'string', 'required': True}})
     def get(self):
         news_id = request.args.get('news_id')
+        lang = request.args.get('lang')
 
         if not news_id:
             return {"error": "Request is missing required fields", "status": 400}
@@ -462,15 +482,14 @@ class MainClass(Resource):
         print('NewsID:', news_id)
 
         try:
-            scores = n4j_conn.get_ods_scores(news_id)
+            scores = n4j_conn.get_ods_scores(news_id, lang)
             print(scores)
             return scores
         except ValueError as err:
             return {"error": "Wrong argument format", "status": 400, "detail": str(err)}
 
 
-#### QUERIES ####
-
+# QUERIES #
 # 查找所提问题的答案
 DEFAULT_Q_CANDIDATES = 20
 DEFAULT_Q_READERS = 3
@@ -481,7 +500,8 @@ DEFAULT_Q_READERS = 3
 @ns_queries.route("/")
 class MainClass(Resource):
     @api.doc(params={'query': {'description': 'Do your question', 'required': True, 'type': 'string'},
-                     'results': {'description': 'number of results', 'type': 'int', 'default': DEFAULT_Q_READERS}})
+                     'results': {'description': 'number of results', 'type': 'int', 'default': DEFAULT_Q_READERS},
+                     'lang': {'description': 'language', 'type': 'string', 'required': True}})
     def get(self):
         query = request.args.get('query')
         if not query:
@@ -489,6 +509,7 @@ class MainClass(Resource):
 
         date_from = request.args.get('date_from', None)
         to_date = request.args.get('date_to', None)
+        lang = request.args.get('lang')
 
         results = get_int_arg(request.args, 'results', DEFAULT_Q_READERS)
 
@@ -512,12 +533,13 @@ class MainClass(Resource):
         if query_connector:
             cpu_start = time.process_time()
             start = timeit.default_timer()
-            result = query_connector.get_answers_th(query, date_from=date_from, to_date=to_date, readers=results)
+            result = query_connector.get_answers_th(query, date_from=date_from,
+                                                    to_date=to_date, readers=results, lang=lang)
             cpu_stop = time.process_time()
             stop = timeit.default_timer()
             logger.debug('Quering time: %i.  Quering process execution time: %i', stop - start, cpu_stop - cpu_start)
             logger.debug('Query result: %s', result)
-            return json.loads(result)
+            return json.loads(result, strict=False)
         else:
             return {"error": "El gestor de queries no está disponible en esta versión", "status": 400}
 
@@ -528,7 +550,7 @@ def get_int_arg(args, name, default=None):
     if value:
         try:
             value = int(value)
-        except ValueError as err:
+        except ValueError:
             print('argument error using default ', name, ':', default)
             value = DEFAULT_Q_CANDIDATES
     else:
