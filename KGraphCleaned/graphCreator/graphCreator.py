@@ -19,13 +19,6 @@ from utils import *
 extractor = extractors.ArticleExtractor()
 
 
-def get_dict_path(language='en'):
-    current_path = os.path.dirname(__file__)
-    parent_path = os.path.dirname(current_path)
-
-    return parent_path + "/dict/dict_{0}.txt".format(language)
-
-
 def calculate(data):
     _url = data["url"]
     lang = data["lang"]

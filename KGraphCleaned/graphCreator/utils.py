@@ -2,6 +2,7 @@ from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from pysentimiento import create_analyzer   # currently only support english and spanish
 from googletrans import Translator  # Google translator
 from nltk.corpus import wordnet
+import os
 
 
 sid = SentimentIntensityAnalyzer()
@@ -25,10 +26,18 @@ def get_sentiment_score(text, lang):
     return sent_score
 
 
+def get_dict_path(lang='en'):
+    current_path = os.path.dirname(__file__)
+    parent_path = os.path.dirname(current_path)
+
+    return parent_path + "/dict/dict_{0}.txt".format(lang)
+
+
 # Get dictionary from .txt file
-def get_dict_from_file(dict_filepath, lang):
+def get_dict_from_file(lang):
     if lang != 'en':
         dictionary = {}
+        dict_filepath = get_dict_path(lang)
 
         with open(dict_filepath, 'r', encoding='latin-1') as f:
             for line in f.readlines():
