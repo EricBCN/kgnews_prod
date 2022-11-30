@@ -2,14 +2,9 @@ import json
 import os
 import datetime
 from datetime import date
-from datetime import timedelta
-
-import mongokit_ng
 from logger import logger
-
 import requests
 from requests.auth import HTTPProxyAuth
-
 from interfaces.extractor import Extractor
 from utils.mongokit import news_collection
 from utils import Constants
@@ -34,9 +29,12 @@ class NewsAPI(Extractor):
 
         super().__init__()
         self.TODAY_DATE = date.today().strftime('%Y-%m-%d')
-        # self.API_KEY = os.getenv('NEWS_API_KEY') or '66f22d5add7b47c7b984db75104444b1' # Xin's key
-        # self.API_KEY = os.getenv('NEWS_API_KEY') or 'c9c775e2bfcf4537aca5429864f0f3ee'
-        self.API_KEY = os.getenv('NEWS_API_KEY') or '1b632fa500ef4dc7a7f364c48462b403'
+        if language == 'en':
+            self.API_KEY = os.getenv('NEWS_API_KEY') or '1b632fa500ef4dc7a7f364c48462b403'
+        else:
+            self.API_KEY = os.getenv('NEWS_API_KEY') or '36030e9cebeb4d25a6da9667f713f706'
+
+        # self.API_KEY = os.getenv('NEWS_API_KEY') or '1b632fa500ef4dc7a7f364c48462b403'
         self.WRITE_CSV = False
         self.BASE_URL = os.getenv('NEWS_API_URL_BASE') or 'https://newsapi.org/v2/everything'
         self.DEFAULT_LANGUAGE = language
@@ -61,8 +59,8 @@ class NewsAPI(Extractor):
     def get_dataset(self):
         # today = date.today()
         # to_date = today.strftime('%Y-%m-%d')
-        to_date = '2022-10-02'
-        from_date = '2022-09-05'
+        to_date = '2022-11-29'
+        from_date = '2022-10-31'
         # Is Monday?
         # if today.isoweekday() == 1:
         #     # from_date = (today - timedelta(days=30)).strftime('%Y-%m-%d')
