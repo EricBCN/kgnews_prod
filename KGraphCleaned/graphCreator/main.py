@@ -1,6 +1,8 @@
-from graphCreator import calculate
+from datetime import datetime
+
+# import graphCreator.graphCreator
+from graphCreator import calculate, get_dict_path
 from mongo import *
-from neo4j_functions import *
 import schedule
 from multiprocessing import Pool
 import sys
@@ -8,7 +10,7 @@ import time
 
 
 DAILY_TIME = "03:00"
-lang = "en"
+lang = "es"
 
 
 def launch():
@@ -23,8 +25,8 @@ def launch():
     # else:
     #     articulos = get_articles(int(last_id(lang)[0]), lang)
 
-    articles = get_articles(-1, "en")
-    # articles = get_unprocessed_articles_by_ids(lang)  # 所有id在mongodb的ids集合中的文章
+    # articles = get_articles(-1, "en")
+    articles = get_unprocessed_articles_by_ids(lang)  # 所有id在mongodb的ids集合中的文章
     # articles = get_unprocessed_articles_in_graph(lang)    # 所有不在graph中的文章
     # articles = get_unprocessed_no_entity_articles_in_graph(lang)    # 所有不在graph中且entity为空的文章
     # articles = get_unprocessed_entity_articles_in_graph(lang)   # 只挑有entity的文章
@@ -48,17 +50,35 @@ def launch():
             "entity": post["entity"]
         })
 
+    # datos = datos[:42]
     print('Get {0} articles.'.format(len(datos)))
 
-    for dato in datos:
-        result = calculate(dato)
-        print(result)
+    start_time = datetime.now()  # 纪录运行时间
 
-    # p = Pool(6)
-    # try:
-    #     p.map(calcula, datos)
-    # except TypeError:
-    #     print(str(sys.exc_info()))
+    # count = 0
+    # count_all = 0
+    # for dato in datos:
+    #     result = calculate(dato)
+    #     print(result)
+    #
+    #     if 'Error' not in result:
+    #         count += 1
+    #
+    #     count_all += 1
+    #     print(count)
+    #
+    #     if count >= 20:
+    #         break
+    # print(count_all)
+
+    p = Pool(6)
+    try:
+        p.map(calculate, datos)
+    except TypeError:
+        print(str(sys.exc_info()))
+
+    end_time = datetime.now()
+    print("Execution Time: {0} seconds".format(str((end_time - start_time).seconds)))  # 显示运行时间
 
     # end
 
@@ -80,4 +100,5 @@ def weekly_scheduler(at_time):
 
 if __name__ == '__main__':
     # weekly_scheduler(DAILY_TIME)
-    launch()
+    print(get_dict_path('es'))
+    # launch()
