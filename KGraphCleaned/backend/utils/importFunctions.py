@@ -2,7 +2,7 @@ import datetime
 import os
 from boilerpy3 import extractors
 from PyPDF2 import PdfFileReader
-
+import langdetect
 
 # For Ubuntu Server
 import sys
@@ -54,6 +54,16 @@ def _create_article(url, title, language, content, source_type):
             article['entity'].append(ent.lower())
 
     return article
+
+
+def get_lang(text):
+    try:
+        result = langdetect.detect_langs(text)
+        result = str(result[0])[:2]
+    except:
+        result = 'unknown'
+
+    return result
 
 
 def get_content_from_url(url):
@@ -127,8 +137,14 @@ def store(doc):
     return {"result": "The article has been stored correctly!", "_id": doc["_id"]}
 
 
-def import_document(flag, url, title, language, content, source_type):
+def import_document(flag, url, title, content, source_type):
     if flag:
+        language = get_lang(content)
+
+        if language not in ['en', 'es']:
+            result = {"result": "Error: Cannot determine article's language."}
+            return result
+
         doc = _create_article(url=url, title=title, language=language, content=content, source_type=source_type)
         result = store(doc)
 
@@ -167,7 +183,13 @@ def delete_file(filepath):
 
 
 if __name__ == '__main__':
-    print(mongokit.news_collection)  # path test
+    # print(mongokit.news_collection)  # path test
+
+    text_en = 'Beijing - a city of more than 21 million - reported 316 new Covid cases to 15:00 on Monday, according to Reuters news agency. Amongst the three deaths reported since Sunday afternoon was an 87-year-old man.\n' \
+              'Liu Xiaofeng - the deputy director of Beijing\'s municipal Centre for Disease Control and Prevention - described the situation as the most complex and severe yet seen in the city, the news agency added.'
+    text_es = 'Mover el torneo al invierno local fue parte de la respuesta. Pero la rica nación desértica promete dejar además un legado radical: avances en tecnología que permitirán la celebración de grandes eventos deportivos durante todo el año, incluso en los países más cálidos. Hajar Saleh, futbolista de Qatar, dice que el calor y la humedad hacen que jugar en la región sea un gran desafío.'
+    get_lang(text_en)
+    get_lang(text_es)
 
     # url = "https://japantoday.com/category/world/sri-lanka-has-an-imf-deal-now-it-courts-china-and-india1"
     # content, title, flag = get_content_from_url(url)

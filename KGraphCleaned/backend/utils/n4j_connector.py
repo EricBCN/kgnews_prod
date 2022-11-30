@@ -15,13 +15,14 @@ __all__ = [
 
 logger = logging.getLogger('apiLogger')
 
-MATCH_NEWS = "MATCH (n:News_en {isitODS : 1} ) "  # 只获取ODS的新闻
-
 
 # WITH = " WITH {id:n.id, title:n.title, url:n.url , date:n.date, sentiment:n.sentiment, source:n.source } as json "
 
 
 # utilities
+def match_news(lang):
+    return "MATCH (n:News_" + lang + " {isitODS : 1} ) "
+
 
 # 将sentiment数值转换为正面（1）、中性（0）、负面（-1）
 def get_emotion(sentiment):
@@ -154,9 +155,9 @@ class N4jConnector:
 
     ### Get news
     # 获取某一时间段内，某个ods或者所有ods的News信息，返回的News按照ODS权重由高到低排列
-    def get_range_news(self, from_date=None, to_date=None, osd=None, limit=constants.LIMIT_NEWS, entity=""):
+    def get_range_news(self, from_date=None, to_date=None, osd=None, limit=constants.LIMIT_NEWS, entity="", lang='en'):
         # Build query
-        query = MATCH_NEWS + build_datetime_clause("n.date", from_date, to_date)
+        query = match_news(lang) + build_datetime_clause("n.date", from_date, to_date)
 
         if osd and len(osd) > 0:
             query += " AND n.odsID in [" + convert_number_array_to_clause(osd) + "] "
@@ -170,8 +171,9 @@ class N4jConnector:
 
             query = query[0:-3] + ") "
 
-        query += " RETURN distinct n.id as ID, n.title as title, n.url as url, n.date as date, n.sentiment as sentiment," \
-                 " n.source as source, n.ODSweight as peso, n.odsID as ODS_ID, n.entity as entity" \
+        query += " RETURN distinct n.id as ID, n.title as title, n.url as url, n.date as date," \
+                 " n.sentiment as sentiment, n.source as source, n.ODSweight as peso," \
+                 " n.odsID as ODS_ID, n.entity as entity, '" + lang + "' as lang" \
                  " ORDER BY n.ODSweight DESC"
 
         if limit > 0:
@@ -186,11 +188,11 @@ class N4jConnector:
         return results
 
     # 获取某一时间段内，某个ods或者所有ods的News信息，并返回sentiment最negative的News
-    def get_most_negative(self, from_date=None, to_date=None, osd=None, entity=""):
+    def get_most_negative(self, from_date=None, to_date=None, osd=None, entity="", lang='en'):
         print('get_most_negative')
         session = self.neo4j.session()
 
-        query = MATCH_NEWS + build_datetime_clause("n.date", from_date, to_date)
+        query = match_news(lang) + build_datetime_clause("n.date", from_date, to_date)
 
         if osd and len(osd) > 0:
             query += " AND n.odsID in [" + convert_number_array_to_clause(osd) + "] "
@@ -208,9 +210,10 @@ class N4jConnector:
 
             query = query[0:-3] + ") "
 
-        query += " RETURN distinct n.id as ID, n.title as title, n.url as url, n.date as date, n.sentiment as sentiment, " \
-                 "n.source as source, n.ODSweight as peso, n.odsID as ODS_ID, n.entity as entity " \
-                 "ORDER BY toFloat(sentiment) ASC, n.ODSweight DESC LIMIT 1"
+        query += " RETURN distinct n.id as ID, n.title as title, n.url as url, n.date as date," \
+                 " n.sentiment as sentiment, n.source as source, n.ODSweight as peso," \
+                 " n.odsID as ODS_ID, n.entity as entity, '" + lang + "' as lang" \
+                 " ORDER BY toFloat(sentiment) ASC, n.ODSweight DESC LIMIT 1"
 
         record = session.run(query).single()
         print(query)
@@ -223,11 +226,11 @@ class N4jConnector:
 
     # The most positive article from a time range
     # 获取某一时间段内，某个ods或者所有ods的News信息，并返回sentiment最positive的News
-    def get_most_positive(self, from_date=None, to_date=None, osd=None, entity=""):
+    def get_most_positive(self, from_date=None, to_date=None, osd=None, entity="", lang='en'):
         print('get_most_positive_range')
         session = self.neo4j.session()
 
-        query = MATCH_NEWS + build_datetime_clause("n.date", from_date, to_date)
+        query = match_news(lang) + build_datetime_clause("n.date", from_date, to_date)
 
         if osd and len(osd) > 0:
             query += " AND n.odsID in [" + convert_number_array_to_clause(osd) + "] "
@@ -245,8 +248,9 @@ class N4jConnector:
 
             query = query[0:-3] + ") "
 
-        query += " RETURN distinct n.id as ID, n.title as title, n.url as url, n.date as date, n.sentiment as sentiment, " \
-                 " n.source as source, n.ODSweight as peso, n.odsID as ODS_ID, n.entity as entity" \
+        query += " RETURN distinct n.id as ID, n.title as title, n.url as url, n.date as date," \
+                 " n.sentiment as sentiment, n.source as source, n.ODSweight as peso," \
+                 " n.odsID as ODS_ID, n.entity as entity, '" + lang + "' as lang" \
                  " ORDER BY toFloat(sentiment) DESC, n.ODSweight DESC LIMIT 1"
 
         print(query)
@@ -269,11 +273,11 @@ class N4jConnector:
     # 获取某一时间段内，某个ods或者所有ods新闻的所有Token信息
     # 返回的token信息部分：token文本、token出现的新闻数（不同新闻）、token出现的次数
     # 排序：新闻数（降序）、token出现次数（降序）
-    def get_tokens(self, date_from=None, date_to=None, osd=None, limit=constants.LIMIT_TOPICS, entity=None):
+    def get_tokens(self, date_from=None, date_to=None, osd=None, limit=constants.LIMIT_TOPICS, entity=None, lang='en'):
         print('get_tokens. Limit:', limit)
         session = self.neo4j.session()
-        match_tokens = "profile MATCH (ne:News_en {isitODS: 1})-[r:NEWS_SENTENCE_en]-(s:Sentence_en)-[r2:TOKEN_BELONGS_TO_en]-(t:Token_en)" \
-                       " USING INDEX SEEK ne:News_en(isitODS) "
+        match_tokens = "profile MATCH (ne:News_{0} {{isitODS: 1}})-[r:NEWS_SENTENCE_{0}]-(s:Sentence_{0})-" \
+                       "[r2:TOKEN_BELONGS_TO_{0}]-(t:Token_{0}) USING INDEX SEEK ne:News_{0}(isitODS) ".format(lang)
 
         query = match_tokens + build_datetime_clause("ne.date", date_from, date_to)
 
@@ -305,11 +309,11 @@ class N4jConnector:
 
     ### GRAFICO 1
     # 统计信息：获取某一时间段内，某个ods或者所有ods的News条数，按照ODS编号排序
-    def get_news_per_sdg(self, date_from, date_to, osd=None, entity=""):
+    def get_news_per_sdg(self, date_from, date_to, osd=None, entity="", lang='en'):
         print('get_news_per_sdg')
         session = self.neo4j.session()
 
-        query = MATCH_NEWS + build_datetime_clause("n.date", date_from, date_to)
+        query = match_news(lang) + build_datetime_clause("n.date", date_from, date_to)
 
         if osd and len(osd) > 0:
             query += " AND n.odsID in [" + convert_number_array_to_clause(osd) + "] "
@@ -336,7 +340,7 @@ class N4jConnector:
 
     ### GRAFICO 2
     # 统计信息：获取某一时间段内，每天有最多News条数的ODS编号、News条数、日期
-    def get_ods_per_day(self, date_from, date_to, osd=None, entity=""):
+    def get_ods_per_day(self, date_from, date_to, osd=None, entity="", lang='en'):
         print('get_ods_per_day')
 
         # MATCH (n:News_en {isitODS : 1} ) WHERE datetime(n.date)  >= datetime('2020-05-18T00:00:00')  AND datetime(n.date) < datetime('2020-05-20T00:00:00')
@@ -344,7 +348,7 @@ class N4jConnector:
         # with date(datetime(n.date)) as date, n.odsID as ODS, count(n.id) as total return date, ODS, total order by total desc, date desc
         session = self.neo4j.session()
 
-        query = MATCH_NEWS + build_datetime_clause("n.date", date_from, date_to)
+        query = match_news(lang) + build_datetime_clause("n.date", date_from, date_to)
 
         if osd and len(osd) > 0:
             query += " AND n.odsID in [" + convert_number_array_to_clause(osd) + "] "
@@ -382,13 +386,13 @@ class N4jConnector:
 
     ### GRAFICO
     # 统计信息：获取某一新闻的所有ODS分数
-    def get_ods_scores(self, news_id):
+    def get_ods_scores(self, news_id, lang):
         print('get_ods_scores')
         session = self.neo4j.session()
 
-        query = "MATCH (n:News_en)-[r:NEWS_ODS_en]-(o:ODS_en) " \
-                "WHERE n.id='{0}' " \
-                "RETURN o.id as id, r.peso as peso ORDER BY peso desc".format(news_id)
+        query = "MATCH (n:News_{0})-[r:NEWS_ODS_{0}]-(o:ODS_{0}) " \
+                "WHERE n.id='{1}' " \
+                "RETURN o.id as id, r.peso as peso ORDER BY peso desc".format(lang, news_id)
 
         results = json.loads(create_list_from_records(session.run(query)))
 
@@ -397,11 +401,11 @@ class N4jConnector:
 
     ### GRAFICO
     # 统计信息：获取某一时间段内，某个entity或者所有entity的News条数，按照entity排序
-    def get_news_per_entity(self, date_from, date_to, osd=None, entity=None):
+    def get_news_per_entity(self, date_from, date_to, osd=None, entity=None, lang='en'):
         print('get_news_per_entity')
         session = self.neo4j.session()
 
-        query = MATCH_NEWS + build_datetime_clause("n.date", date_from, date_to)
+        query = match_news(lang) + build_datetime_clause("n.date", date_from, date_to)
 
         if osd and len(osd) > 0:
             query += " AND n.odsID in [" + convert_number_array_to_clause(osd) + "] "

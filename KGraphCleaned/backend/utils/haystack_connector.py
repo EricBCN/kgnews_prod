@@ -18,6 +18,18 @@ import gc
 from . import constants
 # import constants
 
+# For Ubuntu Server
+# import sys
+# path = os.path.abspath(os.path.dirname(__file__))
+# projectPath = os.path.split(path)[0]
+# projectPath = os.path.split(projectPath)[0]
+# sys.path.append(projectPath)
+# sys.path.append(os.path.join(projectPath, "graphCreator"))
+# from utils import *
+
+# For Windows Local Test
+from graphCreator.utils import *
+
 
 DEFAULT_PATH = './conf/workfile.txt'
 
@@ -28,18 +40,22 @@ __all__ = [
 ]
 
 
-## ___________ CLASS DEFINITION ___________________
+# ___________ CLASS DEFINITION ___________________
 class QueryConnector:
-
-    def __init__(self, url, user=None, password= None):
+    def __init__(self, url, user=None, password=None):
         super().__init__()
         self.neo4j = GraphDatabase.driver(url, auth=(user, password))
 
         # Import 'wordnet' corpus if needed
         nltk.download('wordnet')
 
+        self.language = 'en'
+        self.dict = None
+
         logger.info('load spacy...')
+
         self.nlp = spacy.load("en_core_web_md")
+
         print ('spacy loaded')
         logger.info('spacy loaded')
 
@@ -54,11 +70,8 @@ class QueryConnector:
         logger.info('Farm reader has been created with number of processes: %i', NUM_PROCESSES)
         print('QueryConnector initialized.')
 
-
-
     # Get sentences
     def sentences_for_tokens_v2(self, tokens):
-
         session = self.neo4j.session()
         clause1 = ""
         i = 1
@@ -90,30 +103,31 @@ class QueryConnector:
         session.close()
         return result.values()
 
-
     # Get sentences
     def sentences_for_tokens_v3(self, tokens, date_from=None, to_date=None):
-
         session = self.neo4j.session()
         clause1 = ""
         i = 1
 
         for token in tokens[:5]:
-            concept = ""
-            try:
-                print('token', token)
-                syns = wordnet.synset(token + ".n.01")
-                concept = syns.lemma_names()[0].lower()
-            except LookupError as err:
-                concept = token.lower()
-                print('LookupError in token: ', token)
-            except:
-                concept = token.lower()
+            # try:
+            #     print('token', token)
+            #     syns = wordnet.synset(token + ".n.01")
+            #     concept = syns.lemma_names()[0].lower()
+            # except LookupError as err:
+            #     concept = token.lower()
+            #     print('LookupError in token: ', token)
+            # except:
+            #     concept = token.lower()
 
-            if (i == 1):
-                clause1 += "MATCH (t1:Token_en {concept: '" + concept + "'})-[r1:TOKEN_BELONGS_TO_en]-(s:Sentence_en)-[r1bis:NEWS_SENTENCE_en]-(n:News_en) "
+            concept = get_concept(token, self.language, self.dict)
+
+            if i == 1:
+                clause1 += "MATCH (t1:Token_{0} {{concept: '{1}'}})-[r1:TOKEN_BELONGS_TO_{0}]-(s:Sentence_{0})-" \
+                           "[r1bis:NEWS_SENTENCE_{0}]-(n:News_{0}) ".format(self.language, concept)
             else:
-                clause1 += "MATCH (t" + str(i) + ":Token_en {concept: '" + concept + "'})-[r" + str(i) + ":TOKEN_BELONGS_TO_en]-(s:Sentence_en) "
+                clause1 += "MATCH (t{0}:Token_{1} {{concept: '{2}'}})-[r{0}:TOKEN_BELONGS_TO_{1}]-" \
+                           "(s:Sentence_{1}) ".format(str(i), self.language, concept)
 
             #clause1 += "MATCH (n" + str(i) + ":Token_en {concept: '" + concept + "'})-[:TOKEN_BELONGS_TO_en]-(s)-[NEWS_SENTENCE_en]-(n) "
 
@@ -128,10 +142,13 @@ class QueryConnector:
 
         return values
 
-
-
     # Get answers in a separate thread
-    def get_answers_th(self, question, readers=3,  candidates=40, date_from=None, to_date=None):
+    def get_answers_th(self, question, readers=3,  candidates=40, date_from=None, to_date=None, lang='en'):
+        if lang == "es":
+            self.language = lang
+            self.nlp = spacy.load("es_core_news_sm")
+            self.dict = get_dict_from_file('../dict/dict_{0}.txt'.format(lang), lang)
+
         print('get_answers_thread')
         from multiprocessing.pool import ThreadPool
         pool = ThreadPool(processes=1)
@@ -143,8 +160,6 @@ class QueryConnector:
 
         return return_value
 
-
-
     # Get answers
     def get_answers(self, question,  date_from=None, to_date=None, readers=3, candidates=40):
         print('get answers:', question, ', from: ', date_from, ', to: ', to_date)
@@ -152,7 +167,7 @@ class QueryConnector:
 
         # Get all tokens except stopwords
         frases = self.nlp(question)
-        words = [token.lemma_.lower() for token in frases if token.is_stop != True and token.is_alpha and len(token.lemma_) > 1]
+        words = [token.lemma_.lower() for token in frases if token.is_stop is not True and token.is_alpha and len(token.lemma_) > 1]
         texts = []
 
         print('words:', str(words))
@@ -175,8 +190,7 @@ class QueryConnector:
             print('words:', str(words))
             return "[]"
         else:
-            print('total texts: ' + str(len(texts)))
-
+            print('total texts_en: ' + str(len(texts)))
 
         print("creando directorio temporal....")
         temp_path = '../datos/temporal/' + datetime.datetime.now().strftime("temp%H%M-%S-%f")
@@ -185,10 +199,10 @@ class QueryConnector:
         i = 0
         files = 0
         for text in texts:
-            if (text[0] != None):
+            if text[0] is not None:
                 # check date
                 if check_date(text[4], date_from, to_date):
-                    f = open(temp_path + '/workfile' + str(i) + '.txt', 'w')
+                    f = open(temp_path + '/workfile' + str(i) + '.txt', 'w', encoding='utf-8')
                     f.write(text[1] + "\n")
                     f.close()
                     files += 1
@@ -198,12 +212,10 @@ class QueryConnector:
             i += 1
 
         if files == 0:
-            logging.warning('no texts found in dates!')
+            logging.warning('no texts_en found in dates!')
             # Remove temporal path:
             remove_dir(temp_path)
             return "[]"
-
-
 
         # In-Memory Document Store
         print("[DEBUG] In-Memory Document Store")
@@ -225,27 +237,27 @@ class QueryConnector:
         # You can configure how many candidates the reader and retriever shall return
         # The higher top_k_retriever, the better (but also the slower) your answers.
         #respuestas = finder.get_answers(question=question, top_k_retriever=10, top_k_reader=5)
-        respuestas = pipe.run(
+        answers = pipe.run(
             query=question, params={"Retriever": {"top_k": candidates}, "Reader": {"top_k": readers}}
         )
 
-        resultados = []
+        results = []
 
         contexts = set()
 
-        for respuesta in respuestas['answers']:
-            context = respuesta.context
+        for answer in answers['answers']:
+            context = answer.context
             if context not in contexts:
                 for text in texts:
-                    if (text[0] != None):
-                        if (context.replace("\n", "") in text[1]):
-                            respuesta.title = text[0]
-                            respuesta.url = text[2]
-                            respuesta.source = text[3]
-                            respuesta.date = text[4]
+                    if text[0] is not None:
+                        if context.replace("\n", "") in text[1]:
+                            answer.title = text[0]
+                            answer.url = text[2]
+                            answer.source = text[3]
+                            answer.date = text[4]
                             break
 
-                to_dict = respuesta.__dict__
+                to_dict = answer.__dict__
                 to_dict['offset_start_in_doc'] = to_dict['offsets_in_document'][0].start
                 to_dict['offset_end_in_doc'] = to_dict['offsets_in_document'][0].end
                 to_dict['offset_start'] = to_dict['offsets_in_context'][0].start
@@ -255,7 +267,7 @@ class QueryConnector:
                 to_dict.pop('offsets_in_context')
 
                 to_json = json.dumps(to_dict)
-                resultados.append(to_json)
+                results.append(to_json)
                 contexts.add(context)
             else:
                 print('context already exits:', context, '  in ', contexts)
@@ -265,7 +277,7 @@ class QueryConnector:
 
         gc.collect()
 
-        return create_list_from_records(resultados)
+        return create_list_from_records(results)
 
 
 # haystack旧版本函数
@@ -292,7 +304,7 @@ def write_documents_to_db(document_store, document_dir, clean_func=None, only_em
     docs_to_index = []
     doc_id = 1
     for path in file_paths:
-        with open(path) as doc:
+        with open(path, encoding="utf-8") as doc:
             text = doc.read()
             if clean_func:
                 text = clean_func(text)
@@ -345,9 +357,6 @@ def remove_dir(path):
     Path(path).rmdir()
 
 
-
-
-###
 def check_date(input_date, from_date, to_date):
     result = True
     if from_date and to_date:
@@ -355,8 +364,6 @@ def check_date(input_date, from_date, to_date):
         date = datetime.datetime.strptime(input_date, constants.NEO4J_FORMAT)
         result = from_date <= date <= to_date
     return result
-
-
 
 """
 qconn = QueryConnector(user, password)
@@ -366,10 +373,11 @@ print("sentences", qconn.sentences_for_tokens_v2(['coronavirus', 'sostenibilidad
 """
 
 if __name__ == '__main__':
-    question = 'What is SDG'
+    question = 'Qué es ODS'
     date_from = '2020-01-01'
     to_date = '2023-01-01'
     DATE_FORMAT = '%Y-%m-%d'
+    lang = 'es'
 
     date_from = datetime.datetime.strptime(date_from, DATE_FORMAT)
     to_date = datetime.datetime.strptime(to_date, DATE_FORMAT)
@@ -386,6 +394,6 @@ if __name__ == '__main__':
     url = CONFIG['neo4j']['url']
 
     query_connector = QueryConnector(url, user=user, password=password)
-    result = query_connector.get_answers_th(question, date_from=date_from, to_date=to_date, readers=3)
+    result = query_connector.get_answers_th(question, date_from=date_from, to_date=to_date, readers=3, lang=lang)
     print(result)
     
