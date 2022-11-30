@@ -10,25 +10,21 @@ from itertools import combinations
 
 import spacy
 import json
-import os
 import glob
 import datetime
 import logging
 import gc
+import os
 from . import constants
+from . import common
 # import constants
 
 # For Ubuntu Server
-# import sys
-# path = os.path.abspath(os.path.dirname(__file__))
-# projectPath = os.path.split(path)[0]
-# projectPath = os.path.split(projectPath)[0]
-# sys.path.append(projectPath)
-# sys.path.append(os.path.join(projectPath, "graphCreator"))
-# from utils import *
+import sys
+
 
 # For Windows Local Test
-from graphCreator.utils import *
+# from graphCreator.utils import *
 
 
 DEFAULT_PATH = './conf/workfile.txt'
@@ -120,7 +116,7 @@ class QueryConnector:
             # except:
             #     concept = token.lower()
 
-            concept = get_concept(token, self.language, self.dict)
+            concept = common.get_concept(token, self.language, self.dict)
 
             if i == 1:
                 clause1 += "MATCH (t1:Token_{0} {{concept: '{1}'}})-[r1:TOKEN_BELONGS_TO_{0}]-(s:Sentence_{0})-" \
@@ -147,7 +143,7 @@ class QueryConnector:
         if lang == "es":
             self.language = lang
             self.nlp = spacy.load("es_core_news_sm")
-            self.dict = get_dict_from_file('../dict/dict_{0}.txt'.format(lang), lang)
+            self.dict = common.get_dict_from_file(lang)
 
         print('get_answers_thread')
         from multiprocessing.pool import ThreadPool
