@@ -32,7 +32,7 @@
     }
   },
   "api": {
-    "urlBase": "http://34.255.178.194:5000/",
+    "urlBase": "http://127.0.0.1:5000/",
     "endpoints": {
       "news": "news",
       "positiveNews": "news/positive",
