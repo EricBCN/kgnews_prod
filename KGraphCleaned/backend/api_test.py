@@ -118,7 +118,7 @@ class MainClass(Resource):
 
                 print("Start to analyze the file.")
                 content, title, flag = get_content_from_pdf(filepath)
-                result = import_document(flag, filename, title, "en", content, "pdf")
+                result = import_document(flag, filename, title, content, "pdf")
                 # delete_file(filepath)
                 print(result)
 
