@@ -4,12 +4,11 @@ import spacy
 from boilerpy3 import extractors
 from tqdm import tqdm
 from newspaper import Article
-import os
 
 from neo4j_functions import *
 from mongo import *
 from httpSessionWithTimeout import HttpSessionWithTimeout, HEADERS
-from utils import *
+from utilities import *
 
 # from .httpSessionWithTimeout import HttpSessionWithTimeout, HEADERS  # For backend local test
 # from .neo4j_functions import *  # For backend local test
@@ -112,8 +111,7 @@ def calculate(data):
                     add_news_sentence_relation(session_neo4j, news_id, sentence_id, date, lang)
                     previous_sentence = sentence_id
 
-                    dictionary_path = get_dict_path(lang)
-                    dictionary = get_dict_from_file(dictionary_path, lang)   # get es-en dictionary
+                    dictionary = get_dict_from_file(lang)   # get es-en dictionary
 
                     for t in texto:
                         if t.is_alpha and not t.is_stop and len(t.lemma_) > 1:
