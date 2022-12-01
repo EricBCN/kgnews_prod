@@ -141,9 +141,12 @@ class QueryConnector:
     # Get answers in a separate thread
     def get_answers_th(self, question, readers=3,  candidates=40, date_from=None, to_date=None, lang='en'):
         if lang == "es":
-            self.language = lang
             self.nlp = spacy.load("es_core_news_sm")
-            self.dict = common.get_dict_from_file(lang)
+        else:
+            self.nlp = spacy.load("en_core_web_md")
+
+        self.language = lang
+        self.dict = common.get_dict_from_file(lang)
 
         print('get_answers_thread')
         from multiprocessing.pool import ThreadPool
